@@ -46,24 +46,23 @@ L’objectif du projet est de :
 
 ```text
 project_4AMAM/
-│
-├── market_data.py      # Gestion des données de marché (Yahoo Finance, nettoyage, rendements)
-├── option.py           # Définition des options (call / put, strike, maturité)
-├── calibration.py      # Estimation des paramètres (volatilité, taux, u, d, p*)
-├── crr.py              # Implémentation du modèle CRR (arbre + pricing)
-├── backtester.py       # Évaluation du modèle (MAE, RMSE, stabilité)
-└── main.py             # Script principal
+├── src/
+│	├── market_data.py      # Gestion des données de marché (Yahoo Finance, nettoyage, rendements)
+│	├── option.py           # Définition des options (call / put, strike, maturité)
+│	├── calibration.py      # Estimation des paramètres (volatilité, taux, u, d, p*)
+│	├── crr.py              # Implémentation du modèle CRR (arbre + pricing)
+│	└── backtester.py       # Évaluation du modèle (MAE, RMSE, stabilité)
 ```
 
 ### Extension
 ```text
 project_4AMAM/
-│
-├── sentiment.py          # Analyse de sentiment (news, texte)
-├── portfolio_math.py     # Modélisation mathématique du portefeuille
-├── sgd_optimizer.py      # Optimisation par descente de gradient stochastique
-├── ml_signals.py         # Modèle ML pour signaux ou allocation
-└── portfolio_backtest.py # Backtesting des stratégies de portefeuille
+├── Ext/
+│	├── sentiment.py          # Analyse de sentiment (news, texte)
+│	├── portfolio_math.py     # Modélisation mathématique du portefeuille
+│	├── sgd_optimizer.py      # Optimisation par descente de gradient stochastique
+│	├── ml_signals.py         # Modèle ML pour signaux ou allocation
+│	└── portfolio_backtest.py # Backtesting des stratégies de portefeuille
 ```
 
 ### Analyse des données
@@ -76,6 +75,16 @@ Projet_4AMAM/
 │   ├── pricing_analysis.ipynb   # Analyse du pricing CRR
 │   └── backtesting.ipynb        # Analyse des performances du modèle
 │   └── portfolio_analysis.ipynb  # Analyse des stratégies de portefeuille
+```
+
+### Rapport
+```text
+project_4AMAM/
+├── report/
+│   ├── img/				# Graphiques et figures pour le rapport
+│   ├── report.tex         # Rapport final du projet
+│   └── presentation.pptx  # Présentation pour la soutenance
+
 ```
 
 ## Références
@@ -104,7 +113,7 @@ Projet réalisé dans le cadre du cursus **4A MAM – Polytech Lyon**
 
 - Dridi Mohamed Dhia
 - Roussel Noah
-- Dantas de Sena Flavio  
+- DANTAS DE SENA Flavio  
 
 ---
 
