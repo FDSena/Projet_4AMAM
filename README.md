@@ -58,7 +58,6 @@ project_4AMAM/
 ```text
 project_4AMAM/
 ├── ext/
-│	├── sentiment.py          # Analyse de sentiment (news, texte)
 │	├── portfolio_math.py     # Modélisation mathématique du portefeuille
 │	├── sgd_optimizer.py      # Optimisation par descente de gradient stochastique
 │	├── ml_signals.py         # Modèle ML pour signaux ou allocation
