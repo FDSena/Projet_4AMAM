@@ -57,7 +57,7 @@ project_4AMAM/
 ### Extension
 ```text
 project_4AMAM/
-├── Ext/
+├── ext/
 │	├── sentiment.py          # Analyse de sentiment (news, texte)
 │	├── portfolio_math.py     # Modélisation mathématique du portefeuille
 │	├── sgd_optimizer.py      # Optimisation par descente de gradient stochastique
@@ -67,7 +67,7 @@ project_4AMAM/
 
 ### Analyse des données
 ```text
-Projet_4AMAM/
+project_4AMAM/
 │
 ├── notebooks/          # Analyses, visualisations et expérimentations
 │   ├── data_analysis.ipynb      # Exploration des données (prix, rendements)
