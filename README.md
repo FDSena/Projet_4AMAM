@@ -2,6 +2,8 @@
 
 ## Estimation de la valeur d’options – Modèle de Cox-Ross-Rubinstein
 
+![architecture_crr_portfolio](architecture_crr_portfolio.svg)
+
 ---
 
 ## Description du projet
