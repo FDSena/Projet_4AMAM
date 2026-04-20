@@ -112,9 +112,10 @@ python main.py
 
 Projet réalisé dans le cadre du cursus **4A MAM – Polytech Lyon**
 
-- Dridi Mohamed Dhia
-- Roussel Noah
 - DANTAS DE SENA Flavio  
+- DRIDI Mohamed Dhia
+- ROUSSEL Noah
+
 
 ---
 
