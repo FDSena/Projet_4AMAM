@@ -25,14 +25,10 @@ car cela est plus pratique pour :
 - la réutilisation dans tout le projet
 """
 
-
-# ============================================================
-# IMPORTS
-# ============================================================
-
-# import pandas as pd
-# import numpy as np
-# import yfinance as yf
+import pandas as pd
+import numpy as np
+import yfinance as yf
+from datetime import datetime
 
 
 # ============================================================
@@ -40,48 +36,17 @@ car cela est plus pratique pour :
 # ============================================================
 
 def download_data(ticker, start_date, end_date, interval="1d"):
-    """
-    Télécharger les données de marché d’un actif depuis Yahoo Finance.
 
-    Paramètres
-    ----------
-    ticker : str
-        Symbole de l’actif financier.
-        Exemples :
-        - '^FCHI' pour le CAC 40
-        - 'AAPL' pour Apple
-        - 'BZ=F' pour le Brent
+    data = yf.download(ticker, start=start_date, end=end_date, interval=interval, progress=False)
 
-    start_date : str
-        Date de début de récupération des données.
+    if data.empty:
+        print(f"Data not found for ticker: {ticker}")
+        return None
 
-    end_date : str
-        Date de fin de récupération des données.
+    data.index = pd.to_datetime(data.index)
+    data = data.sort_index(ascending=True)
 
-    interval : str, optional
-        Fréquence des données.
-        Par défaut : '1d' pour des données journalières.
-
-    Retour
-    ------
-    data : DataFrame
-        Tableau contenant les données de marché brutes :
-        - Open
-        - High
-        - Low
-        - Close
-        - Volume
-        avec un index de type date.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Interroger Yahoo Finance via yfinance
-    2. Vérifier que les données téléchargées ne sont pas vides
-    3. Mettre l’index au bon format temporel
-    4. Trier les données par ordre chronologique
-    5. Retourner le DataFrame brut
-    """
-    pass
+    return data
 
 
 # ============================================================
@@ -300,3 +265,12 @@ On sépare volontairement :
 
 Cela rend le projet plus propre, plus lisible et plus facile à partager.
 """
+
+enddate = datetime.now().strftime('%Y-%m-%d')
+
+print(enddate)
+data_cac40 = download_data('^FCHI', '2000-01-01', enddate)
+data_brent = download_data('BZ=F', '2000-01-01', enddate)
+
+print(data_cac40)
+print(data_brent)
