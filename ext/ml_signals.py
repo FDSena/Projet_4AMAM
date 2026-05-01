@@ -31,8 +31,8 @@ complexe pour qu’il soit pertinent dans le projet.
 # IMPORTS
 # ============================================================
 
-# import numpy as np
-# import pandas as pd
+import numpy as np
+import pandas as pd
 
 
 # ============================================================
@@ -58,29 +58,46 @@ def build_features(price_data, returns_data=None, window=5):
     features : DataFrame
         Tableau de features utilisables pour un signal
         ou un modèle simple.
-
-    Exemples de features possibles
-    ------------------------------
-    - rendements passés
-    - moyenne glissante
-    - volatilité glissante
-    - momentum simple
-    - variation récente des prix
-
-    Ce qu’il faut faire
     -------------------
     1. Construire les variables pertinentes
     2. Aligner les dates
     3. Gérer les valeurs manquantes générées par les fenêtres glissantes
     4. Retourner un tableau propre
-
-    Remarque
-    --------
-    Pour une première version, il suffit de construire
-    quelques features simples et interprétables.
     """
-    pass
+    if returns_data is not None:
+        returns_data = returns_data.copy()
+    else:
+        returns = price_data.pct_change()
 
+    feat = []
+
+    # Rendement cumulé sur la fenêtre
+    rend = returns.rolling(window).sum()
+    rend.columns = [f"{col}_rend" for col in returns.columns]
+    feat.append(rend)
+
+    # Volatilité
+    vol = returns.rolling(window).std()
+    vol.columns = [f"{col}_vol" for col in returns.columns]
+    feat.append(vol)
+
+    # prix moyenne mobile
+    mm = price_data.rolling(window).mean()
+    price_vs_mm = (price_data - mm) / mm
+    price_vs_mm.columns = [f"{col}_price_vs_mm" for col in price_data.columns]
+    feat.append(price_vs_mm)
+
+    # Score du rendement
+    roll_mean = returns.rolling(window).mean()
+    roll_std = returns.rolling(window).std()
+    score = (returns - roll_mean) / roll_std
+    score.columns = [f"{col}_score" for col in returns.columns]
+    feat.append(score)
+
+    # Assemblage
+    features = pd.concat(feat, axis=1).dropna()
+
+    return features
 
 # ============================================================
 # 2. CONSTRUCTION DE LA CIBLE
@@ -123,8 +140,26 @@ def build_target(returns_data, horizon=1, mode="binary"):
     --------
     Pour une première version, une cible binaire est souvent suffisante.
     """
-    pass
+    # Rendement futur
+    future_return = returns_data.shift(-horizon)
 
+    # Mode binaire
+    if mode == "binary":
+        target = (future_return > 0).astype(int)
+
+    # Mode signal
+    elif mode == "signal":
+        target = np.sign(future_return)
+    
+    # Mode continu
+    elif mode == "continuous":
+        target = future_return
+
+    else :
+        raise ValueError(f"Mode {mode} unknown. Choose 'binary', 'signal', or 'continuous'.")
+    
+    return target.dropna()
+        
 
 # ============================================================
 # 3. SEPARATION TRAIN / TEST
@@ -158,7 +193,22 @@ def split_train_test(features, target, train_ratio=0.8):
     --------
     En finance, il faut garder une logique chronologique stricte.
     """
-    pass
+    common_index = features.index.intersection(target.index)
+
+    # Alignement
+    common_index = features.index.intersection(target.index)
+    features = features.loc[common_index]
+    target = target.loc[common_index]
+
+    #point de séparation
+    split = int(len(features) * train_ratio)
+
+    # Séparation
+    X_train = features.iloc[:split]
+    X_test = features.iloc[split:]
+    Y_train = target.iloc[:split]
+    Y_test = target.iloc[split:]
+    return X_train, X_test, Y_train, Y_test
 
 
 # ============================================================
@@ -199,7 +249,9 @@ def simple_signal_model(features, threshold=0.0):
     Cette fonction permet d’avoir une première version fonctionnelle
     même sans modèle de machine learning avancé.
     """
-    pass
+    signal = (features > threshold).astype(int)
+    return signal
+    
 
 
 # ============================================================
