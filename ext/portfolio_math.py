@@ -33,6 +33,9 @@ Il sera utilisé par :
 # 1. RENDEMENTS MOYENS DES ACTIFS
 # ============================================================
 
+import pandas as pd
+import numpy as np
+
 def estimate_expected_returns(returns_matrix):
     """
     Estimer le rendement moyen de chaque actif.
@@ -58,7 +61,12 @@ def estimate_expected_returns(returns_matrix):
     -------
     Ce vecteur servira au calcul du rendement espéré du portefeuille.
     """
-    pass
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
+    
+    mu = returns_matrix.mean(axis=0)
+
+    return mu.values
 
 
 # ============================================================
@@ -89,9 +97,13 @@ def estimate_covariance_matrix(returns_matrix):
     -------
     Cette matrice sert à quantifier le risque du portefeuille.
     """
-    pass
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
 
+    covariance_matrix = returns_matrix.cov()
 
+    return covariance_matrix.values
+    
 # ============================================================
 # 3. VERIFICATION DES POIDS
 # ============================================================
@@ -121,9 +133,23 @@ def check_weights(weights):
     --------
     Cette fonction sert de garde-fou avant tout calcul.
     """
-    pass
+    weights = np.array(weights)
 
+    if weights.size == 0:
+        return False
 
+    if not np.issubdtype(weights.dtype, np.number):
+        return False
+
+    if np.isnan(weights).any() or np.isinf(weights).any():
+        return False
+
+    total_weight = np.sum(weights)
+
+    if not (np.isclose(total_weight, 1.0) or np.isclose(total_weight, 0.0)):
+        return False
+
+    return True
 # ============================================================
 # 4. NORMALISATION DES POIDS
 # ============================================================
@@ -150,8 +176,12 @@ def normalize_weights(weights):
     -------
     Garantit que le portefeuille est entièrement investi.
     """
-    pass
-
+    weights = np.array(weights, dtype=float)
+    total_weight = np.sum(weights)
+    if total_weight == 0:
+        return weights
+    normalized_weights = weights / total_weight
+    return normalized_weights
 
 # ============================================================
 # 5. PROJECTION DES POIDS POSITIFS
@@ -180,8 +210,9 @@ def project_to_nonnegative_weights(weights):
     -------
     Permet d’imposer l’absence de vente à découvert.
     """
-    pass
-
+    weights = np.array(weights, dtype=float)
+    weights[weights < 0] = 0.0
+    return normalize_weights(weights)
 
 # ============================================================
 # 6. RENDEMENT ESPERE DU PORTEFEUILLE
@@ -218,8 +249,20 @@ def portfolio_expected_return(weights, expected_returns, risk_free_rate=None):
     -------
     C’est l’un des deux termes centraux du modèle mean-variance.
     """
-    pass
-
+    weights = np.array(weights,dtype=float)
+    expected_returns = np.array(expected_returns,dtype=float)
+    
+    if risk_free_rate is None:
+        mu_p = np.dot(weights, expected_returns)
+        return mu_p
+    
+    else:
+        risky_weights = weights[:-1]
+        w_rf = weights[-1]
+        mu_risky = np.dot(risky_weights, expected_returns)
+        mu_rf = w_rf * risk_free_rate
+        mu_p = mu_risky + mu_rf
+        return mu_p
 
 # ============================================================
 # 7. VARIANCE DU PORTEFEUILLE
@@ -249,7 +292,20 @@ def portfolio_variance(weights, covariance_matrix):
     -------
     Mesure principale du risque dans l’approche mean-variance.
     """
-    pass
+    weights = np.array(weights, dtype=float)
+    covariance_matrix = np.array(covariance_matrix, dtype=float)
+
+    if covariance_matrix.shape[0] != covariance_matrix.shape[1]:
+        raise ValueError("Covariance matrix must be square.")
+    if covariance_matrix.shape[0] != weights.size:
+        raise ValueError("Covariance matrix size must match number of weights.")
+    
+    # calcul variance
+    sigma_p2 = weights.T @ covariance_matrix @ weights
+
+    return sigma_p2
+
+ 
 
 
 # ============================================================
@@ -280,7 +336,10 @@ def portfolio_volatility(weights, covariance_matrix):
     -------
     Donne une mesure du risque plus interprétable que la variance.
     """
-    pass
+    variance = portfolio_variance(weights, covariance_matrix)
+    variance = max(variance, 0.0)
+    sigma_p = np.sqrt(variance)
+    return sigma_p
 
 
 # ============================================================
@@ -322,14 +381,19 @@ def mean_variance_cost(weights, expected_returns, covariance_matrix, lambda_risk
     La forme exacte doit être choisie de manière cohérente
     avec l’objectif du projet.
     """
-    pass
+    expected_return = portfolio_expected_return(weights, expected_returns)
+    variance = portfolio_variance(weights, covariance_matrix)
+
+    cost = lambda_risk * variance - expected_return
+
+    return cost
 
 
 # ============================================================
 # 10. VERSION AVEC RENDEMENT CIBLE
 # ============================================================
 
-def target_return_cost(weights, expected_returns, covariance_matrix, target_return):
+def target_return_cost(weights, expected_returns, covariance_matrix, target_return, alpha=10):
     """
     Construire une fonction de coût pour minimiser le risque
     sous contrainte d’un rendement cible.
@@ -360,8 +424,15 @@ def target_return_cost(weights, expected_returns, covariance_matrix, target_retu
     Cette fonction peut être utile pour comparer
     plusieurs formulations de l’optimisation.
     """
-    pass
+    expected_return = portfolio_expected_return(weights, expected_returns)
+    variance = portfolio_variance(weights, covariance_matrix)
 
+    return_penalty = (expected_return - target_return) ** 2
+
+    # coefficient de pénalité
+    cost = variance + alpha * return_penalty
+
+    return cost
 
 # ============================================================
 # 11. AJOUT EXPLICITE D’UN ACTIF SANS RISQUE
@@ -399,8 +470,17 @@ def add_risk_free_asset(expected_returns, covariance_matrix, risk_free_rate):
     et une covariance nulle avec les actifs risqués
     dans cette modélisation simplifiée.
     """
-    pass
+    expected_returns = np.array(expected_returns, dtype=float)
+    covariance_matrix = np.array(covariance_matrix, dtype=float)
 
+    n = expected_returns.shape[0]
+
+    new_expected_returns = np.append(expected_returns, risk_free_rate)
+
+    new_covariance_matrix = np.zeros((n + 1, n + 1))
+    new_covariance_matrix[:n, :n] = covariance_matrix
+
+    return new_expected_returns, new_covariance_matrix
 
 # ============================================================
 # 12. CONTRAINTES DE BASE
@@ -431,8 +511,12 @@ def enforce_portfolio_constraints(weights, nonnegative=True):
     -------
     Cette fonction sera utile après chaque mise à jour dans sgd_optimizer.py
     """
-    pass
+    weights = np.array(weights, dtype=float)
 
+    if nonnegative:
+        return project_to_nonnegative_weights(weights)
+
+    return normalize_weights(weights)
 
 # ============================================================
 # 13. NOTES D’UTILISATION

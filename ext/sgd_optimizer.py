@@ -26,8 +26,7 @@ Il sera utilisé par :
 # IMPORTS
 # ============================================================
 
-# import numpy as np
-
+import numpy as np
 
 # ============================================================
 # 1. INITIALISATION DES POIDS
@@ -64,8 +63,20 @@ def initialize_weights(n_assets, method="equal"):
     Une initialisation simple par poids égaux est souvent suffisante
     pour une première version.
     """
-    pass
+    if n_assets <= 0:
+        raise ValueError("n_assets must be a positive integer.")
+    
+    if method == "equal":
+        weights = np.ones(n_assets) / n_assets
 
+    elif method == "random":
+        weights = np.random.rand(n_assets)
+        weights /= np.sum(weights)
+
+    else:
+        raise ValueError(f"Unknown initialization method: {method}")
+    
+    return weights
 
 # ============================================================
 # 2. CALCUL APPROCHE DU GRADIENT
@@ -104,7 +115,19 @@ def approximate_gradient(cost_function, weights, epsilon=1e-6, **kwargs):
     même si elle est moins efficace qu’un gradient analytique.
     Pour un projet étudiant, elle est souvent suffisante.
     """
-    pass
+    weights = np.array(weights, dtype=float)
+    gradient = np.zeros_like(weights)
+
+    base_cost = cost_function(weights, **kwargs)
+    n = len(weights)
+    for i in range(n):
+        perturbed_weights = weights.copy()
+        perturbed_weights[i] += epsilon
+
+        perturbed_cost = cost_function(perturbed_weights, **kwargs)
+        gradient[i] = (perturbed_cost - base_cost) / epsilon
+
+    return gradient
 
 
 # ============================================================
@@ -139,8 +162,18 @@ def sgd_update(weights, gradient, learning_rate):
     -------
     Cette fonction réalise le cœur de la descente de gradient.
     """
-    pass
+    weights = np.array(weights, dtype=float)
+    gradient = np.array(gradient, dtype=float)
 
+    if weights.shape != gradient.shape:
+        raise ValueError("Weights and gradient must have the same shape.")
+    
+    if learning_rate <= 0:
+        raise ValueError("Learning rate must be positive.")
+    
+    new_weights = weights - learning_rate * gradient
+
+    return new_weights
 
 # ============================================================
 # 4. APPLICATION DES CONTRAINTES
@@ -173,8 +206,23 @@ def apply_constraints(weights, constraint_function=None):
     Assure que les poids restent interprétables
     et respectent les règles fixées dans le projet.
     """
-    pass
+    weights = np.array(weights, dtype=float)
+    if constraint_function is not None:
+        if not callable(constraint_function):
+            raise ValueError("constraint_function must be callable.")
+        
+        constrained_weights = constraint_function(weights)
 
+    else:
+        sum_weights = np.sum(weights)
+
+        if not np.isclose(sum_weights, 0.0):
+            constrained_weights = weights / sum_weights
+        
+        else:
+            n=len(weights)
+            constrained_weights = np.ones(n) / n
+    return constrained_weights
 
 # ============================================================
 # 5. SGD PRINCIPAL
@@ -241,8 +289,57 @@ def run_sgd(
     Fournir une interface générale d’optimisation utilisable
     avec plusieurs fonctions de coût.
     """
-    pass
+    if not callable(cost_function):
+        raise ValueError("cost_function must be callable.")
+    
+    if n_iterations <= 0:
+        raise ValueError("n_iterations must be a positive integer.")
+    
+    if learning_rate <= 0:
+        raise ValueError("learning_rate must be positive.")
+    
+    weights = np.array(initial_weights, dtype=float)
 
+    weights_history = []
+    cost_history = []
+    
+    for _ in range(n_iterations):
+        if gradient_function is None:
+            gradient = approximate_gradient(
+                cost_function,
+                weights,
+                **kwargs
+            )
+        else:
+            gradient = gradient_function(weights, **kwargs)
+
+        weights = sgd_update(
+            weights,
+            gradient,
+            learning_rate
+        )
+
+        weights = apply_constraints(
+            weights,
+            constraint_function
+        )
+
+        cost_value = cost_function(
+            weights,
+            **kwargs
+        )
+
+        weights_history.append(weights.copy())
+        cost_history.append(cost_value)
+
+    results = {
+        "final_weights": weights,
+        "cost_history": cost_history,
+        "weights_history": weights_history
+    }
+
+    return results
+    
 
 # ============================================================
 # 6. HISTORIQUE DES POIDS
@@ -268,7 +365,15 @@ def store_weights_history(history, weights):
     -------
     Permet d’analyser l’évolution des poids dans les notebooks.
     """
-    pass
+    if history is None:
+        history = []
+
+    weights = np.array(weights, dtype=float)
+
+    history.append(weights.copy())
+
+    return history
+
 
 
 # ============================================================
@@ -295,7 +400,14 @@ def store_cost_history(history, cost_value):
     -------
     Permet d’étudier la convergence de l’algorithme.
     """
-    pass
+    if history is None:
+        history = []
+
+    cost_value = float(cost_value)
+
+    history.append(cost_value)
+
+    return history
 
 
 # ============================================================
@@ -329,7 +441,14 @@ def check_convergence(cost_history, tolerance=1e-6):
     Dans une première version, on peut se contenter
     d’un nombre fixe d’itérations.
     """
-    pass
+    if len(cost_history) < 2:
+        return False
+
+    last_cost = cost_history[-1]
+    prev_cost = cost_history[-2]
+
+    var = abs(last_cost - prev_cost)
+    return var < tolerance    
 
 
 # ============================================================

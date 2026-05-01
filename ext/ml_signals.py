@@ -34,7 +34,6 @@ complexe pour qu’il soit pertinent dans le projet.
 import numpy as np
 import pandas as pd
 
-
 # ============================================================
 # 1. CONSTRUCTION DES FEATURES
 # ============================================================
@@ -64,38 +63,49 @@ def build_features(price_data, returns_data=None, window=5):
     3. Gérer les valeurs manquantes générées par les fenêtres glissantes
     4. Retourner un tableau propre
     """
+
+    price_data = price_data.copy()
+
     if returns_data is not None:
-        returns_data = returns_data.copy()
+        returns = returns_data.copy()
     else:
         returns = price_data.pct_change()
 
     feat = []
 
-    # Rendement cumulé sur la fenêtre
+    # Rendement cumulé
     rend = returns.rolling(window).sum()
-    rend.columns = [f"{col}_rend" for col in returns.columns]
+    rend.columns = [f"{col}_rend_{window}" for col in returns.columns]
     feat.append(rend)
 
-    # Volatilité
+    # Volatilité glissante
     vol = returns.rolling(window).std()
-    vol.columns = [f"{col}_vol" for col in returns.columns]
+    vol.columns = [f"{col}_vol_{window}" for col in returns.columns]
     feat.append(vol)
 
+    # Momentum
+    momentum = price_data / price_data.shift(window) - 1
+    momentum.columns = [f"{col}_momentum_{window}" for col in price_data.columns]
+    feat.append(momentum)
+
     # prix moyenne mobile
-    mm = price_data.rolling(window).mean()
-    price_vs_mm = (price_data - mm) / mm
-    price_vs_mm.columns = [f"{col}_price_vs_mm" for col in price_data.columns]
-    feat.append(price_vs_mm)
+    moving_avg = price_data.rolling(window).mean()
+    price_vs_ma = (price_data - moving_avg) / moving_avg
+    price_vs_ma.columns = [f"{col}_price_vs_moving_avg_{window}" for col in price_data.columns]
+    feat.append(price_vs_ma)
 
     # Score du rendement
     roll_mean = returns.rolling(window).mean()
     roll_std = returns.rolling(window).std()
     score = (returns - roll_mean) / roll_std
-    score.columns = [f"{col}_score" for col in returns.columns]
+    score.columns = [f"{col}_score_{window}" for col in returns.columns]
     feat.append(score)
 
     # Assemblage
-    features = pd.concat(feat, axis=1).dropna()
+    features = pd.concat(feat, axis=1)
+
+    # Nettoyage
+    features = features.replace([np.inf, -np.inf], np.nan).dropna()
 
     return features
 
@@ -249,8 +259,23 @@ def simple_signal_model(features, threshold=0.0):
     Cette fonction permet d’avoir une première version fonctionnelle
     même sans modèle de machine learning avancé.
     """
-    signal = (features > threshold).astype(int)
-    return signal
+    mom_cols = [col for col in features.columns if "momentum" in col]
+    momentum = features[mom_cols]
+
+    if len(momentum.columns) == 0:
+        raise ValueError("No momentum features found. Please check the feature names.")
+
+    momentum = features[mom_cols]
+
+    # moyenne du momentum
+    mm = momentum.mean(axis=1)
+
+    # règle de décision
+    signals = pd.Series(0, index=features.index)
+    signals[mm > threshold] = 1
+    signals[mm < -threshold] = -1
+
+    return signals
     
 
 
@@ -258,7 +283,7 @@ def simple_signal_model(features, threshold=0.0):
 # 5. PREDICTION D’UN SCORE OU D’UN SIGNAL
 # ============================================================
 
-def predict_signal(model, features):
+def predict_signal(model, features, **kwargs):
     """
     Produire un signal d’investissement à partir d’un modèle donné.
 
@@ -280,7 +305,21 @@ def predict_signal(model, features):
     2. Produire une sortie exploitable
     3. Retourner les signaux alignés dans le temps
     """
-    pass
+    if not callable(model):
+        raise ValueError("Model must be a callable object or function.")
+    
+    signals = model(features, **kwargs)
+
+    if not isinstance(signals,(pd.Series, np.ndarray)):
+        raise ValueError("Model output must be a pandas Series or numpy array.")
+    
+    if len(signals) != len(features):
+        raise ValueError("Model output length must match the number of feature rows.")
+    
+    if isinstance(signals, np.ndarray):
+        signals = pd.Series(signals, index=features.index)
+    
+    return signals
 
 
 # ============================================================
@@ -322,8 +361,38 @@ def signal_to_weights(signals, n_assets=1, normalize=True):
     Cette étape fait le lien entre logique prédictive
     et logique portefeuille.
     """
-    pass
+    if not isinstance(signals,pd.Series):
+        signals = pd.Series(signals)
 
+    if n_assets == 1:
+        weights = signals.copy()
+        weights = weights.replace({
+
+            1: 1.0,
+            0: 0.0,
+            -1: 0.0
+        })
+        
+        return weights
+    weights = pd.DataFrame(
+        0.0,
+        index=signals.index,
+        columns=[f"Asset_{i+1}" for i in range(n_assets)]
+    )
+
+    for date, signal in signals.items():
+        if signal == 1:
+            weights.loc[date] = 1.0 / n_assets
+        elif signal == 0:
+            weights.loc[date] = 0.0
+        elif signal == -1:
+            weights.loc[date] = 0.0
+
+    if normalize:
+        row_sums = weights.sum(axis=1)
+        weights = weights.div(row_sums.replace(0,np.nan),axis=0).fillna(0)
+
+    return weights
 
 # ============================================================
 # 7. INTERFACE AVEC UNE FONCTION DE PERTE
@@ -358,14 +427,47 @@ def compute_signal_loss(predicted_signal, realized_returns, mode="simple"):
     Cette fonction peut servir si vous voulez relier ce module
     à sgd_optimizer.py dans une logique d’apprentissage.
     """
-    pass
+    # Convertir en Series
+    predicted_signal = pd.Series(predicted_signal)
+    realized_returns = pd.Series(realized_returns)
+
+    # Alignement
+    common_idx = predicted_signal.index.intersection(realized_returns.index)
+    predicted_signal = predicted_signal.loc[common_idx]
+    realized_returns = realized_returns.loc[common_idx]
+
+    # Gain
+    PNL = predicted_signal * realized_returns
+
+    # Modes
+    if mode == "simple":
+        # maximiser le gain -> perte = -gain
+        loss_value = -PNL.mean()
+
+    elif mode == "penalty":
+        #penaliser les erreurs
+        correct = np.sign(realized_returns)
+        errors = (predicted_signal != correct).astype(int)
+        loss_value = errors.mean()
+
+    elif mode == "risk":
+        # rendement ajusté au risque
+        mean_return = PNL.mean()
+        volatility = PNL.std()
+        ## Loss inspirée de Markowitz : on cherche à maximiser rendement - pénalité de risque
+        loss_value = -(-1/2 * volatility + mean_return)
+    
+    else:
+        raise ValueError(f"Mode {mode} unknown. Choose 'simple', 'penalty', or 'risk'.")
+    
+    return loss_value
 
 
 # ============================================================
 # 8. PIPELINE COMPLET DE GENERATION DE SIGNAUX
 # ============================================================
 
-def build_ml_signals(price_data, returns_data=None, window=5, model=None):
+def build_ml_signals(price_data, returns_data=None, window=5, model=None, threshold=0.0):
     """
     Pipeline complet de génération de signaux d’investissement.
 
@@ -401,8 +503,37 @@ def build_ml_signals(price_data, returns_data=None, window=5, model=None):
     --------
     Fournir une interface utilisable par portfolio_backtest.py
     """
-    pass
+    features = build_features(price_data, returns_data, window)
 
+    if model is None:
+        model = simple_signal_model
+
+    # prédiction du signal
+    signals = predict_signal(
+        model=model,
+        features=features,
+        threshold=threshold
+    )
+
+    # Determiner le nombre d'actifs
+    if isinstance(price_data, pd.DataFrame):
+        n_assets = price_data.shape[1]
+    else:
+        n_assets = 1
+
+    # conversion en poids
+    weights = signal_to_weights(
+        signals, 
+        n_assets=n_assets
+        )
+
+    results = {
+        "features": features,
+        "signals": signals,
+        "weights": weights
+    }
+
+    return results
 
 # ============================================================
 # 9. NOTES D’UTILISATION

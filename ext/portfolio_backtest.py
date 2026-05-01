@@ -25,8 +25,8 @@ Il sera utilisé avec :
 # IMPORTS
 # ============================================================
 
-# import numpy as np
-# import pandas as pd
+import numpy as np
+import pandas as pd
 
 
 # ============================================================
@@ -62,8 +62,23 @@ def compute_portfolio_returns(returns_matrix, weights):
     Cette fonction permet de transformer des rendements d’actifs
     en rendements de portefeuille.
     """
-    pass
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
+    
+    weights = np.array(weights, dtype=float)
 
+    if returns_matrix.shape[1] != len(weights):
+        raise ValueError("Le nombre de colonnes de returns_matrix doit correspondre à la longueur de weights.")
+    
+    portfolio_returns = returns_matrix.values @ weights
+
+    portfolio_returns = pd.Series(
+        portfolio_returns,
+        index=returns_matrix.index,
+        name="Portfolio Returns"
+    )
+
+    return portfolio_returns
 
 # ============================================================
 # 2. EVOLUTION DE LA VALEUR DU PORTEFEUILLE
@@ -95,7 +110,18 @@ def compute_portfolio_value(portfolio_returns, initial_value=1.0):
     -------
     Permet de visualiser la performance globale de la stratégie.
     """
-    pass
+    if not isinstance(portfolio_returns, pd.Series):
+        portfolio_returns = pd.Series(portfolio_returns)
+    
+    if initial_value <= 0:
+        raise ValueError("initial_value doit être strictement positif.")
+
+    cuml_returns = (1 + portfolio_returns).cumprod()
+    portfolio_value =  initial_value * cuml_returns
+
+    portfolio_value.name = "Portfolio Value"
+
+    return portfolio_value
 
 
 # ============================================================
@@ -124,7 +150,21 @@ def compute_cumulative_return(portfolio_value):
     -------
     Mesure simple de la performance totale de la stratégie.
     """
-    pass
+    if not isinstance(portfolio_value, pd.Series):
+        portfolio_value = pd.Series(portfolio_value)
+
+    if len(portfolio_value) < 2:
+        raise ValueError("portfolio_value doit contenir au moins deux valeurs.")
+    
+    initial_value = portfolio_value.iloc[0]
+    final_value = portfolio_value.iloc[-1]
+
+    if initial_value <= 0:
+        raise ValueError("La première valeur de portfolio_value doit être strictement positive.")
+    
+    cuml_return = final_value / initial_value - 1
+
+    return cuml_return
 
 
 # ============================================================
@@ -151,7 +191,16 @@ def compute_backtest_volatility(portfolio_returns, annualization_factor=252):
     -------
     Mesure du risque observé pendant le backtest.
     """
-    pass
+    if not isinstance(portfolio_returns, pd.Series):
+        portfolio_returns = pd.Series(portfolio_returns)
+
+    if len(portfolio_returns) < 2:
+        raise ValueError("portfolio_returns doit contenir au moins deux valeurs.")
+    
+    vol = portfolio_returns.std()
+    annualized_volatility = vol * np.sqrt(annualization_factor)
+
+    return annualized_volatility
 
 
 # ============================================================
@@ -185,8 +234,22 @@ def compute_sharpe_ratio(portfolio_returns, risk_free_rate=0.0, annualization_fa
     -------
     Permet de comparer la qualité de plusieurs stratégies.
     """
-    pass
+    if not isinstance(portfolio_returns, pd.Series):
+        portfolio_returns = pd.Series(portfolio_returns)
 
+    if len(portfolio_returns) < 2:
+        raise ValueError("portfolio_returns doit contenir au moins deux valeurs.")
+    
+    excess_returns = portfolio_returns - risk_free_rate
+    mean_excess_return = excess_returns.mean()
+    vol = excess_returns.std()
+
+    if np.isclose(vol, 0.0):
+        return 0.0
+    
+    sharpe_ratio = (mean_excess_return / vol) * np.sqrt(annualization_factor)
+
+    return sharpe_ratio
 
 # ============================================================
 # 6. DRAWDOWN MAXIMAL
@@ -210,7 +273,17 @@ def compute_max_drawdown(portfolio_value):
     -------
     Mesure importante du risque de perte dans le temps.
     """
-    pass
+    if not isinstance(portfolio_value, pd.Series):
+        portfolio_value = pd.Series(portfolio_value)
+
+    if len(portfolio_value) < 2:
+        raise ValueError("portfolio_value doit contenir au moins deux valeurs.")
+
+    peak = portfolio_value.cummax()
+    drawdown = (portfolio_value - peak) / peak
+    max_drawdown = drawdown.min()
+
+    return max_drawdown
 
 
 # ============================================================
@@ -250,7 +323,36 @@ def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_ra
     3. Calculer les métriques de performance
     4. Retourner les résultats dans une structure simple
     """
-    pass
+    portfolio_returns = compute_portfolio_returns(
+        returns_matrix, 
+        weights
+        )
+    
+    portfolio_value = compute_portfolio_value(
+        portfolio_returns,
+        initial_value
+        )
+    
+    cumulative_return = compute_cumulative_return(portfolio_value)
+    
+    volatility = compute_backtest_volatility(portfolio_returns)
+    
+    sharpe_ratio = compute_sharpe_ratio(
+        portfolio_returns,
+        risk_free_rate)
+    
+    max_drawdown = compute_max_drawdown(portfolio_value)
+
+    results = {
+        "portfolio_returns": portfolio_returns,
+        "portfolio_value": portfolio_value,
+        "cumulative_return": cumulative_return,
+        "volatility": volatility,
+        "sharpe_ratio": sharpe_ratio,
+        "max_drawdown": max_drawdown
+    }
+
+    return results    
 
 
 # ============================================================
@@ -289,7 +391,45 @@ def run_dynamic_backtest(returns_matrix, weights_over_time, initial_value=1.0, r
     Cette fonction est utile si vous utilisez des poids optimisés
     ou des signaux dynamiques.
     """
-    pass
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
+
+    if not isinstance(weights_over_time, pd.DataFrame):
+        weights_over_time = pd.DataFrame(
+            weights_over_time,
+            index=returns_matrix.index,
+            columns=returns_matrix.columns)
+
+    common_index = returns_matrix.index.intersection(weights_over_time.index)
+    returns_matrix = returns_matrix.loc[common_index]
+    weights_over_time = weights_over_time.loc[common_index]
+
+    if returns_matrix.shape[1] != weights_over_time.shape[1]:
+        raise ValueError("The number of columns in returns_matrix must match the number of columns in weights_over_time.")
+    
+    portfolio_returns = pd.Series(
+    (returns_matrix * weights_over_time).sum(axis=1),
+    index=returns_matrix.index,
+    name="Portfolio Returns"
+    )
+
+    portfolio_value = compute_portfolio_value(portfolio_returns, initial_value)
+
+    cumulative_return = compute_cumulative_return(portfolio_value)
+    volatility = compute_backtest_volatility(portfolio_returns)
+    sharpe_ratio = compute_sharpe_ratio(portfolio_returns, risk_free_rate)
+    max_drawdown = compute_max_drawdown(portfolio_value)
+
+    results = {
+        "portfolio_returns": portfolio_returns,
+        "portfolio_value": portfolio_value,
+        "cumulative_return": cumulative_return,
+        "volatility": volatility,
+        "sharpe_ratio": sharpe_ratio,
+        "max_drawdown": max_drawdown
+    }
+
+    return results
 
 
 # ============================================================
@@ -318,7 +458,12 @@ def equal_weight_strategy(n_assets):
     -------
     Sert de stratégie de référence simple pour comparaison.
     """
-    pass
+    if n_assets <= 0:
+        raise ValueError("n_assets doit être un entier positif.")
+    
+    weights = np.ones(n_assets) / n_assets
+
+    return weights
 
 
 # ============================================================
@@ -351,7 +496,19 @@ def compare_strategies(strategy_results):
     Cette fonction permet de résumer clairement les différences
     entre les stratégies testées.
     """
-    pass
+    comparison = {}
+
+    for strategy_name, results in strategy_results.items():
+        comparison[strategy_name] = {
+            "cumulative_return": results["cumulative_return"],
+            "volatility": results["volatility"],
+            "sharpe_ratio": results["sharpe_ratio"],
+            "max_drawdown": results["max_drawdown"]
+        }
+    
+    comparison_table = pd.DataFrame(comparison).T
+
+    return comparison_table
 
 
 # ============================================================
@@ -403,8 +560,57 @@ def run_portfolio_backtest(
     --------
     Fournir une interface unique pour l’évaluation des stratégies.
     """
-    pass
 
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
+
+    n_assets = returns_matrix.shape[1]
+
+    strategy_results = {}
+
+    # 1. Stratégie équipondérée
+    equal_weights = equal_weight_strategy(n_assets)
+
+    results_equal = run_static_backtest(
+        returns_matrix=returns_matrix,
+        weights=equal_weights,
+        initial_value=initial_value,
+        risk_free_rate=risk_free_rate
+    )
+
+    strategy_results["equal_weight"] = results_equal
+
+    # 2. Stratégie optimisée statique
+    if optimized_weights is not None:
+        results_optimized = run_static_backtest(
+            returns_matrix=returns_matrix,
+            weights=optimized_weights,
+            initial_value=initial_value,
+            risk_free_rate=risk_free_rate
+        )
+
+        strategy_results["optimized"] = results_optimized
+
+    # 3. Stratégie dynamique
+    if dynamic_weights is not None:
+        results_dynamic = run_dynamic_backtest(
+            returns_matrix=returns_matrix,
+            weights_over_time=dynamic_weights,
+            initial_value=initial_value,
+            risk_free_rate=risk_free_rate
+        )
+
+        strategy_results["dynamic"] = results_dynamic
+
+    # 4. Tableau comparatif
+    comparison = compare_strategies(strategy_results)
+
+    backtest_results = {
+        "strategy_results": strategy_results,
+        "comparison": comparison
+    }
+
+    return backtest_results
 
 # ============================================================
 # 12. NOTES D’UTILISATION
