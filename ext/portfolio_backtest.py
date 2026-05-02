@@ -27,6 +27,7 @@ Il sera utilisé avec :
 
 import numpy as np
 import pandas as pd
+from portfolio_math import portfolio_volatility, estimate_covariance_matrix
 
 
 # ============================================================
@@ -290,7 +291,7 @@ def compute_max_drawdown(portfolio_value):
 # 7. BACKTEST D’UNE STRATEGIE A POIDS FIXES
 # ============================================================
 
-def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_rate=0.0):
+def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
     """
     Exécuter le backtest d’une stratégie à poids fixes.
 
@@ -339,15 +340,21 @@ def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_ra
     
     sharpe_ratio = compute_sharpe_ratio(
         portfolio_returns,
-        risk_free_rate)
+        risk_free_rate,
+        annualization_factor
+    )
     
     max_drawdown = compute_max_drawdown(portfolio_value)
+
+    covariance_matrix = estimate_covariance_matrix(returns_matrix)
+    theoretical_volatility = portfolio_volatility(weights, covariance_matrix) * np.sqrt(annualization_factor)
 
     results = {
         "portfolio_returns": portfolio_returns,
         "portfolio_value": portfolio_value,
         "cumulative_return": cumulative_return,
         "volatility": volatility,
+        "theoretical_volatility": theoretical_volatility,
         "sharpe_ratio": sharpe_ratio,
         "max_drawdown": max_drawdown
     }
@@ -359,7 +366,7 @@ def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_ra
 # 8. BACKTEST D’UNE STRATEGIE A POIDS DYNAMIQUES
 # ============================================================
 
-def run_dynamic_backtest(returns_matrix, weights_over_time, initial_value=1.0, risk_free_rate=0.0):
+def run_dynamic_backtest(returns_matrix, weights_over_time, initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
     """
     Exécuter le backtest d’une stratégie à poids variables dans le temps.
 
@@ -417,7 +424,7 @@ def run_dynamic_backtest(returns_matrix, weights_over_time, initial_value=1.0, r
 
     cumulative_return = compute_cumulative_return(portfolio_value)
     volatility = compute_backtest_volatility(portfolio_returns)
-    sharpe_ratio = compute_sharpe_ratio(portfolio_returns, risk_free_rate)
+    sharpe_ratio = compute_sharpe_ratio(portfolio_returns, risk_free_rate, annualization_factor)
     max_drawdown = compute_max_drawdown(portfolio_value)
 
     results = {
@@ -502,6 +509,7 @@ def compare_strategies(strategy_results):
         comparison[strategy_name] = {
             "cumulative_return": results["cumulative_return"],
             "volatility": results["volatility"],
+            "theoretical_volatility": results.get("theoretical_volatility", None),
             "sharpe_ratio": results["sharpe_ratio"],
             "max_drawdown": results["max_drawdown"]
         }
@@ -520,7 +528,8 @@ def run_portfolio_backtest(
     optimized_weights=None,
     dynamic_weights=None,
     initial_value=1.0,
-    risk_free_rate=0.0
+    risk_free_rate=0.0,
+    annualization_factor=252
 ):
     """
     Lancer un backtest complet et comparer plusieurs stratégies.
@@ -537,6 +546,8 @@ def run_portfolio_backtest(
         Valeur initiale du portefeuille.
     risk_free_rate : float
         Taux sans risque.
+    annualization_factor : int
+        Facteur d'annualisation.
 
     Retour
     ------
@@ -575,7 +586,8 @@ def run_portfolio_backtest(
         returns_matrix=returns_matrix,
         weights=equal_weights,
         initial_value=initial_value,
-        risk_free_rate=risk_free_rate
+        risk_free_rate=risk_free_rate,
+        annualization_factor=annualization_factor
     )
 
     strategy_results["equal_weight"] = results_equal
@@ -586,7 +598,8 @@ def run_portfolio_backtest(
             returns_matrix=returns_matrix,
             weights=optimized_weights,
             initial_value=initial_value,
-            risk_free_rate=risk_free_rate
+            risk_free_rate=risk_free_rate,
+            annualization_factor=annualization_factor
         )
 
         strategy_results["optimized"] = results_optimized
@@ -597,7 +610,8 @@ def run_portfolio_backtest(
             returns_matrix=returns_matrix,
             weights_over_time=dynamic_weights,
             initial_value=initial_value,
-            risk_free_rate=risk_free_rate
+            risk_free_rate=risk_free_rate,
+            annualization_factor=annualization_factor
         )
 
         strategy_results["dynamic"] = results_dynamic

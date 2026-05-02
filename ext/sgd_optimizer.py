@@ -27,6 +27,7 @@ Il sera utilisé par :
 # ============================================================
 
 import numpy as np
+from portfolio_math import check_weights
 
 # ============================================================
 # 1. INITIALISATION DES POIDS
@@ -324,6 +325,9 @@ def run_sgd(
             constraint_function
         )
 
+        if not check_weights(weights):
+            raise ValueError(f"Poids invalides après apply_constraints : {weights}")
+
         cost_value = cost_function(
             weights,
             **kwargs
@@ -331,6 +335,11 @@ def run_sgd(
 
         weights_history.append(weights.copy())
         cost_history.append(cost_value)
+        
+        if check_convergence(cost_history):
+            break
+
+
 
     results = {
         "final_weights": weights,
@@ -340,75 +349,6 @@ def run_sgd(
 
     return results
     
-
-# ============================================================
-# 6. HISTORIQUE DES POIDS
-# ============================================================
-
-def store_weights_history(history, weights):
-    """
-    Ajouter les poids courants à l’historique de l’optimisation.
-
-    Paramètres
-    ----------
-    history : list
-        Historique existant.
-    weights : array-like
-        Poids courants.
-
-    Retour
-    ------
-    updated_history : list
-        Historique mis à jour.
-
-    Utilité
-    -------
-    Permet d’analyser l’évolution des poids dans les notebooks.
-    """
-    if history is None:
-        history = []
-
-    weights = np.array(weights, dtype=float)
-
-    history.append(weights.copy())
-
-    return history
-
-
-
-# ============================================================
-# 7. HISTORIQUE DE LA FONCTION DE COUT
-# ============================================================
-
-def store_cost_history(history, cost_value):
-    """
-    Ajouter la valeur courante de la fonction de coût à l’historique.
-
-    Paramètres
-    ----------
-    history : list
-        Historique existant.
-    cost_value : float
-        Valeur actuelle de la fonction de coût.
-
-    Retour
-    ------
-    updated_history : list
-        Historique mis à jour.
-
-    Utilité
-    -------
-    Permet d’étudier la convergence de l’algorithme.
-    """
-    if history is None:
-        history = []
-
-    cost_value = float(cost_value)
-
-    history.append(cost_value)
-
-    return history
-
 
 # ============================================================
 # 8. CRITERE D’ARRET OPTIONNEL
