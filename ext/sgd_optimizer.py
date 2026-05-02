@@ -27,7 +27,7 @@ Il sera utilisé par :
 # ============================================================
 
 import numpy as np
-from portfolio_math import check_weights
+from ext.portfolio_math import check_weights
 
 # ============================================================
 # 1. INITIALISATION DES POIDS
@@ -236,6 +236,9 @@ def run_sgd(
     learning_rate,
     constraint_function=None,
     gradient_function=None,
+    convergence_window=5,
+    convergence_tolerance=1e-6,
+    verbose=False,
     **kwargs
 ):
     """
@@ -261,6 +264,15 @@ def run_sgd(
     gradient_function : callable or None
         Fonction de calcul du gradient.
         Si None, utiliser une approximation numérique.
+
+    convergence_window : int
+        Taille de la fenêtre pour check_convergence.
+    
+    convergence_tolerance : float
+        Seuil de convergence.
+    
+    verbose : bool
+        Si True, affiche le coût toutes les 50 itérations.
 
     **kwargs :
         Paramètres supplémentaires transmis à la fonction de coût
@@ -300,19 +312,17 @@ def run_sgd(
         raise ValueError("learning_rate must be positive.")
     
     weights = np.array(initial_weights, dtype=float)
-
     weights_history = []
     cost_history = []
     
-    for _ in range(n_iterations):
-        if gradient_function is None:
-            gradient = approximate_gradient(
-                cost_function,
+    for i in range(n_iterations):
+        if gradient_function is not None:
+            gradient = gradient_function(
                 weights,
                 **kwargs
             )
         else:
-            gradient = gradient_function(weights, **kwargs)
+            gradient = approximate_gradient(cost_function, weights, **kwargs)
 
         weights = sgd_update(
             weights,
@@ -326,7 +336,7 @@ def run_sgd(
         )
 
         if not check_weights(weights):
-            raise ValueError(f"Poids invalides après apply_constraints : {weights}")
+            raise ValueError(f"Weight invalid after update : {weights}")
 
         cost_value = cost_function(
             weights,
@@ -336,15 +346,21 @@ def run_sgd(
         weights_history.append(weights.copy())
         cost_history.append(cost_value)
         
-        if check_convergence(cost_history):
+        if verbose and i % 50 == 0:
+            print(f"Iteration {i} - Cost: {cost_value:.6f}")
+            
+        if check_convergence(cost_history, tolerance=convergence_tolerance, window=convergence_window):
+            if verbose:
+                print(f"Convergence reached at iteration {i}.")
             break
-
 
 
     results = {
         "final_weights": weights,
         "cost_history": cost_history,
-        "weights_history": weights_history
+        "weights_history": weights_history,
+        "n_iterations": len(cost_history),
+        "converged": len(cost_history) < n_iterations,
     }
 
     return results
@@ -354,7 +370,7 @@ def run_sgd(
 # 8. CRITERE D’ARRET OPTIONNEL
 # ============================================================
 
-def check_convergence(cost_history, tolerance=1e-6):
+def check_convergence(cost_history, tolerance=1e-6, window=5):
     """
     Vérifier si l’algorithme a convergé.
 
@@ -381,14 +397,13 @@ def check_convergence(cost_history, tolerance=1e-6):
     Dans une première version, on peut se contenter
     d’un nombre fixe d’itérations.
     """
-    if len(cost_history) < 2:
+    if len(cost_history) < window:
         return False
 
-    last_cost = cost_history[-1]
-    prev_cost = cost_history[-2]
+    recent = cost_history[-window:]
+    variation = max(recent) - min(recent)
 
-    var = abs(last_cost - prev_cost)
-    return var < tolerance    
+    return variation < tolerance    
 
 
 # ============================================================

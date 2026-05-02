@@ -27,7 +27,7 @@ Il sera utilisé avec :
 
 import numpy as np
 import pandas as pd
-from portfolio_math import portfolio_volatility, estimate_covariance_matrix
+from ext.portfolio_math import portfolio_volatility, estimate_covariance_matrix
 
 
 # ============================================================
@@ -241,7 +241,9 @@ def compute_sharpe_ratio(portfolio_returns, risk_free_rate=0.0, annualization_fa
     if len(portfolio_returns) < 2:
         raise ValueError("portfolio_returns doit contenir au moins deux valeurs.")
     
-    excess_returns = portfolio_returns - risk_free_rate
+    rf_daily = risk_free_rate / annualization_factor
+
+    excess_returns = portfolio_returns - rf_daily
     mean_excess_return = excess_returns.mean()
     vol = excess_returns.std()
 
@@ -291,7 +293,7 @@ def compute_max_drawdown(portfolio_value):
 # 7. BACKTEST D’UNE STRATEGIE A POIDS FIXES
 # ============================================================
 
-def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
+def run_static_backtest(returns_matrix, weights,w_rf=0.0,initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
     """
     Exécuter le backtest d’une stratégie à poids fixes.
 
@@ -324,43 +326,48 @@ def run_static_backtest(returns_matrix, weights, initial_value=1.0, risk_free_ra
     3. Calculer les métriques de performance
     4. Retourner les résultats dans une structure simple
     """
-    portfolio_returns = compute_portfolio_returns(
-        returns_matrix, 
-        weights
-        )
-    
-    portfolio_value = compute_portfolio_value(
-        portfolio_returns,
-        initial_value
-        )
-    
-    cumulative_return = compute_cumulative_return(portfolio_value)
-    
-    volatility = compute_backtest_volatility(portfolio_returns)
-    
-    sharpe_ratio = compute_sharpe_ratio(
-        portfolio_returns,
-        risk_free_rate,
-        annualization_factor
-    )
-    
-    max_drawdown = compute_max_drawdown(portfolio_value)
+    if not isinstance(returns_matrix, pd.DataFrame):
+        returns_matrix = pd.DataFrame(returns_matrix)
 
-    covariance_matrix = estimate_covariance_matrix(returns_matrix)
-    theoretical_volatility = portfolio_volatility(weights, covariance_matrix) * np.sqrt(annualization_factor)
+    weights = np.array(weights, dtype=float)
+
+    if returns_matrix.shape[1] != len(weights):
+        raise ValueError(
+            f"returns_matrix a {returns_matrix.shape[1]} colonnes "
+            f"mais weights a {len(weights)} éléments."
+        )
+
+    # Rendement journalier de l'actif sans risque
+    rf_daily = (risk_free_rate / annualization_factor) * w_rf
+
+    # Rendement du portefeuille : actifs risqués + actif sans risque
+    portfolio_returns = compute_portfolio_returns(returns_matrix, weights) + rf_daily
+    portfolio_value      = compute_portfolio_value(portfolio_returns, initial_value)
+
+    cumulative_return    = compute_cumulative_return(portfolio_value)
+    volatility           = compute_backtest_volatility(portfolio_returns, annualization_factor)
+    sharpe_ratio         = compute_sharpe_ratio(portfolio_returns, risk_free_rate, annualization_factor)
+    max_drawdown         = compute_max_drawdown(portfolio_value)
+
+    # Volatilité théorique (sur les actifs risqués seulement, sans risque n'y contribue pas)
+    try:
+        cov = estimate_covariance_matrix(returns_matrix)
+        theoretical_vol = portfolio_volatility(weights, cov) * np.sqrt(annualization_factor)
+    except Exception:
+        theoretical_vol = None
 
     results = {
-        "portfolio_returns": portfolio_returns,
-        "portfolio_value": portfolio_value,
-        "cumulative_return": cumulative_return,
-        "volatility": volatility,
-        "theoretical_volatility": theoretical_volatility,
-        "sharpe_ratio": sharpe_ratio,
-        "max_drawdown": max_drawdown
+        "portfolio_returns":      portfolio_returns,
+        "portfolio_value":        portfolio_value,
+        "cumulative_return":      cumulative_return,
+        "volatility":             volatility,
+        "theoretical_volatility": theoretical_vol,
+        "sharpe_ratio":           sharpe_ratio,
+        "max_drawdown":           max_drawdown,
+        "w_rf":                   w_rf,
     }
 
-    return results    
-
+    return results
 
 # ============================================================
 # 8. BACKTEST D’UNE STRATEGIE A POIDS DYNAMIQUES
@@ -526,6 +533,7 @@ def compare_strategies(strategy_results):
 def run_portfolio_backtest(
     returns_matrix,
     optimized_weights=None,
+    w_rf = 0.0, 
     dynamic_weights=None,
     initial_value=1.0,
     risk_free_rate=0.0,
@@ -548,7 +556,8 @@ def run_portfolio_backtest(
         Taux sans risque.
     annualization_factor : int
         Facteur d'annualisation.
-
+    w_rf : float
+        Poids de l'actif sans risque dans le portefeuille.
     Retour
     ------
     backtest_results : dict
@@ -597,6 +606,7 @@ def run_portfolio_backtest(
         results_optimized = run_static_backtest(
             returns_matrix=returns_matrix,
             weights=optimized_weights,
+            w_rf=w_rf,
             initial_value=initial_value,
             risk_free_rate=risk_free_rate,
             annualization_factor=annualization_factor

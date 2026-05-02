@@ -26,15 +26,12 @@ Il sera utilisé par :
 # IMPORTS
 # ============================================================
 
-# import numpy as np
-
+import pandas as pd
+import numpy as np
 
 # ============================================================
 # 1. RENDEMENTS MOYENS DES ACTIFS
 # ============================================================
-
-import pandas as pd
-import numpy as np
 
 def estimate_expected_returns(returns_matrix):
     """
@@ -146,7 +143,7 @@ def check_weights(weights):
 
     total_weight = np.sum(weights)
 
-    if not (np.isclose(total_weight, 1.0) or np.isclose(total_weight, 0.0)):
+    if not (np.isclose(total_weight, 1.0, atol=1e-6) or np.isclose(total_weight, 0.0, atol=1e-6)):
         return False
 
     return True
@@ -346,7 +343,11 @@ def portfolio_volatility(weights, covariance_matrix):
 # 9. FONCTION DE COUT MEAN-VARIANCE
 # ============================================================
 
-def mean_variance_cost(weights, expected_returns, covariance_matrix, lambda_risk=1.0):
+def mean_variance_cost(weights, expected_returns,
+                    covariance_matrix, 
+                    lambda_risk=1.0, 
+                    annualization_factor=252
+                    ):
     """
     Construire une fonction de coût de type mean-variance.
 
@@ -384,9 +385,80 @@ def mean_variance_cost(weights, expected_returns, covariance_matrix, lambda_risk
     expected_return = portfolio_expected_return(weights, expected_returns)
     variance = portfolio_variance(weights, covariance_matrix)
 
-    cost = lambda_risk * variance - expected_return
+    ann_return = expected_return * annualization_factor
+    ann_variance = variance * annualization_factor
+
+    cost = lambda_risk * ann_variance - ann_return
 
     return cost
+
+# ============================================================
+# 10. Gradient de la variance moyenne
+# ============================================================
+
+def mean_variance_gradient(
+  weights,
+  expected_returns,
+  covariance_matrix,
+  lambda_risk=1.0,
+  annualization_factor=252      
+):
+    """
+    Gradient analytique de mean_variance_cost.
+
+    Formule
+    ____
+    dJ/dw = 2 * lambda_risk * annualization_factor * Sigma @ w -
+    annualization_factor * mu
+    """
+    weights = np.array(weights, dtype=float)
+    expected_returns = np.array(expected_returns, dtype=float)
+    covariance_matrix = np.array(covariance_matrix, dtype=float)
+
+    grad_variance = 2 * covariance_matrix @ weights
+    grad_return = annualization_factor * expected_returns
+
+    gradient = annualization_factor * ( lambda_risk * grad_variance - grad_return )
+
+    return gradient
+
+# ===========================================================
+# 11. Repartir les poids
+# ===========================================================
+
+def split_weights(weights):
+    """
+    Séparer les poids en deux groupes : actifs risqués et actif sans risque.
+
+    Paramètres
+    ----------
+    weights : array-like
+        Vecteur de poids du portefeuille.
+
+    Retour
+    ------
+    risky_weights : array-like
+        Poids des actifs risqués.
+    risk_free_weight : float
+        Poids de l’actif sans risque.
+
+    Ce qu’il faut faire
+    -------------------
+    1. Identifier le dernier poids comme celui de l’actif sans risque
+    2. Séparer les deux groupes de poids
+    3. Retourner les deux parties
+
+    Utilité
+    -------
+    Permet de calculer le rendement espéré et la variance
+    en tenant compte d’un actif sans risque.
+    """
+    weights = np.array(weights, dtype=float)
+    
+    if len(weights) < 2:
+        raise ValueError("Weights vector must have at least 2 elements to split.")
+
+    return weights[:-1], float(weights[-1])
 
 
 # ============================================================
