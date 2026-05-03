@@ -1,627 +1,522 @@
 """
 portfolio_math.py
+=================
+Briques mathématiques pour l'optimisation mean-variance.
 
-Description
------------
-Ce module regroupe les outils mathématiques nécessaires
-à l’optimisation d’un portefeuille multi-actifs.
+Fondements théoriques
+---------------------
+On travaille dans le cadre de Markowitz (1952).
 
-Son rôle est de :
-- définir les poids du portefeuille
-- calculer le rendement espéré
-- calculer le risque (variance / volatilité)
-- intégrer éventuellement un actif sans risque
-- construire une fonction de coût de type mean-variance
-- gérer les contraintes sur les poids
+Soit un portefeuille de n actifs avec :
+  - µ ∈ ℝⁿ   : vecteur des espérances de rendement
+  - Σ ∈ ℝⁿˣⁿ : matrice de covariance (symétrique définie positive)
+  - w ∈ ℝⁿ   : vecteur des poids  (contrainte : 1ᵀw = 1)
 
-Ce module appartient à la partie extension du projet.
-Il sera utilisé par :
-- sgd_optimizer.py
-- portfolio_backtest.py
-- les notebooks d’analyse
+Rendement du portefeuille :
+    R_p = wᵀ r  →  E[R_p] = wᵀµ,  Var[R_p] = wᵀΣw
+
+Objectif mean-variance (Lagrangien dual) :
+    min_w  λ · wᵀΣw  −  wᵀµ      s.t.  1ᵀw = 1,  w ≥ 0 (optionnel)
+
+Gradient de la fonction de coût (utilisé par sgd_optimizer.py) :
+    ∇_w J = 2λΣw − µ         (avant annualisation)
+
+Annualisation (rendements journaliers → annuels) :
+    µ_ann  = µ  · T
+    Σ_ann  = Σ  · T      avec T = 252 jours ouvrés
+    J_ann  = λ · T · wᵀΣw  −  T · wᵀµ
+    ∇J_ann = T · (2λΣw − µ)
+
+Estimation statistique
+----------------------
+On estime µ et Σ par leurs estimateurs de maximum de vraisemblance :
+    µ̂ = (1/T) Σ_t r_t                  (moyenne empirique)
+    Σ̂ = (1/(T-1)) Σ_t (r_t-µ̂)(r_t-µ̂)ᵀ  (covariance corrigée de Bessel)
+
+Pour la robustesse, on ajoute une régularisation de Ledoit-Wolf optionnelle.
 """
 
-
-# ============================================================
-# IMPORTS
-# ============================================================
-
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 
 # ============================================================
-# 1. RENDEMENTS MOYENS DES ACTIFS
+# 1. ESTIMATION DES ESPÉRANCES DE RENDEMENT
 # ============================================================
 
-def estimate_expected_returns(returns_matrix):
+def estimate_expected_returns(returns_matrix: np.ndarray | pd.DataFrame) -> np.ndarray:
     """
-    Estimer le rendement moyen de chaque actif.
+    Estimer µ̂ = E[r] par la moyenne empirique.
+
+    Estimateur : µ̂_i = (1/T) Σ_t r_{t,i}   (maximum de vraisemblance gaussien)
 
     Paramètres
     ----------
-    returns_matrix : array-like or DataFrame
-        Matrice des rendements historiques.
-        Chaque colonne représente un actif,
-        chaque ligne représente une date.
+    returns_matrix : (T, n) array ou DataFrame
+        T observations, n actifs.
 
     Retour
     ------
-    mu : array-like
-        Vecteur des rendements moyens estimés pour chaque actif.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Calculer la moyenne des rendements pour chaque actif
-    2. Retourner un vecteur de dimension égale au nombre d’actifs
-
-    Utilité
-    -------
-    Ce vecteur servira au calcul du rendement espéré du portefeuille.
+    mu : (n,) ndarray
+        Vecteur des rendements moyens.
     """
-    if not isinstance(returns_matrix, pd.DataFrame):
-        returns_matrix = pd.DataFrame(returns_matrix)
-    
-    mu = returns_matrix.mean(axis=0)
-
-    return mu.values
+    R = np.asarray(returns_matrix, dtype=float)
+    if R.ndim == 1:
+        R = R.reshape(-1, 1)
+    if R.shape[0] < 2:
+        raise ValueError("Il faut au moins 2 observations pour estimer µ.")
+    return R.mean(axis=0)
 
 
 # ============================================================
-# 2. MATRICE DE COVARIANCE
+# 2. ESTIMATION DE LA MATRICE DE COVARIANCE
 # ============================================================
 
-def estimate_covariance_matrix(returns_matrix):
+def estimate_covariance_matrix(
+    returns_matrix: np.ndarray | pd.DataFrame,
+    shrinkage: float = 0.0
+) -> np.ndarray:
     """
-    Estimer la matrice de covariance des rendements.
+    Estimer Σ̂ par la covariance empirique corrigée (Bessel).
+
+    Estimateur sans biais : Σ̂ = (1/(T-1)) Σ_t (r_t - µ̂)(r_t - µ̂)ᵀ
+
+    Régularisation optionnelle (Ledoit-Wolf linéaire) :
+        Σ̂_reg = (1-α) Σ̂ + α · (trace(Σ̂)/n) · I
+    avec α = shrinkage ∈ [0, 1].
+    Cela garantit que Σ̂_reg est définie positive même avec peu d'observations.
 
     Paramètres
     ----------
-    returns_matrix : array-like or DataFrame
-        Matrice des rendements des actifs.
+    returns_matrix : (T, n)
+    shrinkage : float ∈ [0, 1]
+        0 = pas de régularisation, 1 = matrice diagonale (variances).
 
     Retour
     ------
-    covariance_matrix : array-like
-        Matrice de covariance des rendements.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Utiliser les rendements historiques
-    2. Calculer la covariance entre les actifs
-    3. Retourner une matrice carrée
-
-    Utilité
-    -------
-    Cette matrice sert à quantifier le risque du portefeuille.
+    Sigma : (n, n) ndarray, symétrique semi-définie positive.
     """
-    if not isinstance(returns_matrix, pd.DataFrame):
-        returns_matrix = pd.DataFrame(returns_matrix)
+    R = np.asarray(returns_matrix, dtype=float)
+    if R.ndim == 1:
+        R = R.reshape(-1, 1)
+    T, n = R.shape
+    if T < 2:
+        raise ValueError("Il faut au moins 2 observations pour estimer Σ.")
+    if not 0.0 <= shrinkage <= 1.0:
+        raise ValueError("shrinkage doit être dans [0, 1].")
 
-    covariance_matrix = returns_matrix.cov()
+    Sigma = np.cov(R, rowvar=False)          # (n, n), diviseur T-1
 
-    return covariance_matrix.values
-    
+    if shrinkage > 0.0:
+        mu_diag = np.trace(Sigma) / n        # cible : variance moyenne × I
+        Sigma = (1.0 - shrinkage) * Sigma + shrinkage * mu_diag * np.eye(n)
+
+    return Sigma
+
+
 # ============================================================
-# 3. VERIFICATION DES POIDS
+# 3. VÉRIFICATION DES POIDS
 # ============================================================
 
-def check_weights(weights):
+def check_weights(weights: np.ndarray, tol: float = 1e-6) -> bool:
     """
-    Vérifier qu’un vecteur de poids est cohérent.
+    Vérifier qu'un vecteur de poids est numériquement valide.
+
+    Conditions vérifiées :
+    1. Non vide
+    2. Numérique (pas de NaN, pas d'Inf)
+    3. Somme ≈ 1  (portefeuille entièrement investi)
 
     Paramètres
     ----------
     weights : array-like
-        Vecteur des poids du portefeuille.
+    tol : float — tolérance sur |sum(w) - 1|
 
     Retour
     ------
-    valid : bool
-        Indique si les poids sont acceptables.
-
-    Ce qu’il faut vérifier
-    ----------------------
-    1. Les poids doivent être numériques
-    2. Le vecteur ne doit pas être vide
-    3. Les poids ne doivent pas contenir de NaN
-    4. La somme des poids doit pouvoir être contrôlée
-
-    Remarque
-    --------
-    Cette fonction sert de garde-fou avant tout calcul.
+    bool
     """
-    weights = np.array(weights)
-
-    if weights.size == 0:
+    w = np.asarray(weights, dtype=float)
+    if w.size == 0:
         return False
-
-    if not np.issubdtype(weights.dtype, np.number):
+    if not np.isfinite(w).all():
         return False
+    return bool(np.isclose(w.sum(), 1.0, atol=tol))
 
-    if np.isnan(weights).any() or np.isinf(weights).any():
-        return False
 
-    total_weight = np.sum(weights)
-
-    if not (np.isclose(total_weight, 1.0, atol=1e-6) or np.isclose(total_weight, 0.0, atol=1e-6)):
-        return False
-
-    return True
 # ============================================================
 # 4. NORMALISATION DES POIDS
 # ============================================================
 
-def normalize_weights(weights):
+def normalize_weights(weights: np.ndarray) -> np.ndarray:
     """
-    Normaliser les poids pour que leur somme soit égale à 1.
+    Normaliser w ← w / (1ᵀw)  de sorte que 1ᵀw = 1.
+
+    Si 1ᵀw ≈ 0 (vecteur nul), retourne des poids égaux par défaut.
+    """
+    w = np.asarray(weights, dtype=float)
+    s = w.sum()
+    if np.isclose(s, 0.0):
+        return np.ones(len(w)) / len(w)
+    return w / s
+
+
+# ============================================================
+# 5. PROJECTION SUR LE SIMPLEXE (long-only)
+# ============================================================
+
+def project_to_simplex(weights: np.ndarray) -> np.ndarray:
+    """
+    Projeter w sur le simplexe unitaire Δ = {w ≥ 0, 1ᵀw = 1}.
+
+    Algorithme exact O(n log n) — Duchi et al. (2008).
+    Garantit :  argmin_{v ∈ Δ}  ||v - w||²
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur de poids.
+    weights : (n,) ndarray
 
     Retour
     ------
-    normalized_weights : array-like
-        Vecteur de poids renormalisé.
-
-    Formule
-    -------
-    w_normalized = w / sum(w)
-
-    Utilité
-    -------
-    Garantit que le portefeuille est entièrement investi.
+    v : (n,) ndarray  avec v ≥ 0 et 1ᵀv = 1.
     """
-    weights = np.array(weights, dtype=float)
-    total_weight = np.sum(weights)
-    if total_weight == 0:
-        return weights
-    normalized_weights = weights / total_weight
-    return normalized_weights
+    w = np.asarray(weights, dtype=float).copy()
+    n = len(w)
+    u = np.sort(w)[::-1]               # tri décroissant
+    cssv = np.cumsum(u)
+    rho = np.nonzero(u * np.arange(1, n + 1) > (cssv - 1.0))[0][-1]
+    theta = (cssv[rho] - 1.0) / (rho + 1.0)
+    return np.maximum(w - theta, 0.0)
+
+
+def project_to_nonnegative_weights(weights: np.ndarray) -> np.ndarray:
+    """
+    Clip négatifs à 0 puis normalise (projection approchée, rapide).
+    Utiliser project_to_simplex pour la projection exacte L².
+    """
+    w = np.asarray(weights, dtype=float).copy()
+    w = np.maximum(w, 0.0)
+    return normalize_weights(w)
+
 
 # ============================================================
-# 5. PROJECTION DES POIDS POSITIFS
+# 6. RENDEMENT ESPÉRÉ DU PORTEFEUILLE
 # ============================================================
 
-def project_to_nonnegative_weights(weights):
+def portfolio_expected_return(
+    weights: np.ndarray,
+    expected_returns: np.ndarray,
+    risk_free_rate: float | None = None
+) -> float:
     """
-    Projeter les poids pour éviter les valeurs négatives.
+    Calculer E[R_p] = wᵀµ.
+
+    Avec actif sans risque (dernier poids = w_rf) :
+        E[R_p] = w_risqué ᵀ µ_risqué  +  w_rf · r_f
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur de poids.
-
-    Retour
-    ------
-    projected_weights : array-like
-        Vecteur de poids avec contraintes de positivité.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Remplacer ou corriger les poids négatifs
-    2. Renormaliser si nécessaire
-
-    Utilité
-    -------
-    Permet d’imposer l’absence de vente à découvert.
-    """
-    weights = np.array(weights, dtype=float)
-    weights[weights < 0] = 0.0
-    return normalize_weights(weights)
-
-# ============================================================
-# 6. RENDEMENT ESPERE DU PORTEFEUILLE
-# ============================================================
-
-def portfolio_expected_return(weights, expected_returns, risk_free_rate=None):
-    """
-    Calculer le rendement espéré du portefeuille.
-
-    Paramètres
-    ----------
-    weights : array-like
-        Vecteur des poids du portefeuille.
-    expected_returns : array-like
-        Rendements moyens des actifs risqués.
+    weights : (n,) ou (n+1,) si actif sans risque
+    expected_returns : (n,)
     risk_free_rate : float or None
-        Taux sans risque, si un actif sans risque est intégré explicitement.
 
     Retour
     ------
     mu_p : float
-        Rendement espéré du portefeuille.
-
-    Formule
-    -------
-    mu_p = w^T * mu
-
-    Cas avec actif sans risque
-    --------------------------
-    Si l’actif sans risque est inclus dans le vecteur de poids,
-    sa contribution doit être prise en compte explicitement.
-
-    Utilité
-    -------
-    C’est l’un des deux termes centraux du modèle mean-variance.
     """
-    weights = np.array(weights,dtype=float)
-    expected_returns = np.array(expected_returns,dtype=float)
-    
+    w = np.asarray(weights, dtype=float)
+    mu = np.asarray(expected_returns, dtype=float)
+
     if risk_free_rate is None:
-        mu_p = np.dot(weights, expected_returns)
-        return mu_p
-    
-    else:
-        risky_weights = weights[:-1]
-        w_rf = weights[-1]
-        mu_risky = np.dot(risky_weights, expected_returns)
-        mu_rf = w_rf * risk_free_rate
-        mu_p = mu_risky + mu_rf
-        return mu_p
+        return float(w @ mu)
+
+    # dernier poids = allocation à l'actif sans risque
+    return float(w[:-1] @ mu + w[-1] * risk_free_rate)
+
 
 # ============================================================
 # 7. VARIANCE DU PORTEFEUILLE
 # ============================================================
 
-def portfolio_variance(weights, covariance_matrix):
+def portfolio_variance(
+    weights: np.ndarray,
+    covariance_matrix: np.ndarray
+) -> float:
     """
-    Calculer la variance du portefeuille.
+    Calculer Var[R_p] = wᵀΣw.
+
+    Propriétés garanties :
+    - résultat ≥ 0 (Σ semi-définie positive)
+    - symétrie exploitée par le produit matriciel
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur des poids.
-    covariance_matrix : array-like
-        Matrice de covariance des rendements.
+    weights : (n,)
+    covariance_matrix : (n, n) symétrique semi-définie positive
 
     Retour
     ------
-    sigma_p2 : float
-        Variance du portefeuille.
-
-    Formule
-    -------
-    sigma_p² = w^T * Sigma * w
-
-    Utilité
-    -------
-    Mesure principale du risque dans l’approche mean-variance.
+    sigma2_p : float ≥ 0
     """
-    weights = np.array(weights, dtype=float)
-    covariance_matrix = np.array(covariance_matrix, dtype=float)
-
-    if covariance_matrix.shape[0] != covariance_matrix.shape[1]:
-        raise ValueError("Covariance matrix must be square.")
-    if covariance_matrix.shape[0] != weights.size:
-        raise ValueError("Covariance matrix size must match number of weights.")
-    
-    # calcul variance
-    sigma_p2 = weights.T @ covariance_matrix @ weights
-
-    return sigma_p2
-
- 
+    w = np.asarray(weights, dtype=float)
+    Sigma = np.asarray(covariance_matrix, dtype=float)
+    n = len(w)
+    if Sigma.shape != (n, n):
+        raise ValueError(f"Sigma doit être ({n},{n}), reçu {Sigma.shape}.")
+    return float(w @ Sigma @ w)
 
 
 # ============================================================
-# 8. VOLATILITE DU PORTEFEUILLE
+# 8. VOLATILITÉ DU PORTEFEUILLE
 # ============================================================
 
-def portfolio_volatility(weights, covariance_matrix):
+def portfolio_volatility(
+    weights: np.ndarray,
+    covariance_matrix: np.ndarray
+) -> float:
     """
-    Calculer la volatilité du portefeuille.
+    Calculer σ_p = √(wᵀΣw).
+
+    Le clip à 0 évite les erreurs numériques si wᵀΣw < 0 par arrondi.
+    """
+    return float(np.sqrt(max(portfolio_variance(weights, covariance_matrix), 0.0)))
+
+
+# ============================================================
+# 9. RATIO DE SHARPE (EX-ANTE)
+# ============================================================
+
+def portfolio_sharpe(
+    weights: np.ndarray,
+    expected_returns: np.ndarray,
+    covariance_matrix: np.ndarray,
+    risk_free_rate: float = 0.0,
+    annualization_factor: int = 252
+) -> float:
+    """
+    Ratio de Sharpe ex-ante annualisé :
+
+        SR = (µ_p_ann - r_f) / σ_p_ann
+
+    avec µ_p_ann = T · wᵀµ  et  σ_p_ann = √T · σ_p
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur des poids.
-    covariance_matrix : array-like
-        Matrice de covariance.
+    weights : (n,)
+    expected_returns : (n,)
+    covariance_matrix : (n, n)
+    risk_free_rate : float — taux sans risque annuel
+    annualization_factor : int — T = 252
 
     Retour
     ------
-    sigma_p : float
-        Volatilité du portefeuille.
-
-    Formule
-    -------
-    sigma_p = sqrt(w^T * Sigma * w)
-
-    Utilité
-    -------
-    Donne une mesure du risque plus interprétable que la variance.
+    sharpe : float  (0.0 si σ_p ≈ 0)
     """
-    variance = portfolio_variance(weights, covariance_matrix)
-    variance = max(variance, 0.0)
-    sigma_p = np.sqrt(variance)
-    return sigma_p
+    T = annualization_factor
+    mu_p = portfolio_expected_return(weights, expected_returns) * T
+    sigma_p = portfolio_volatility(weights, covariance_matrix) * np.sqrt(T)
+    if np.isclose(sigma_p, 0.0):
+        return 0.0
+    return (mu_p - risk_free_rate) / sigma_p
 
 
 # ============================================================
-# 9. FONCTION DE COUT MEAN-VARIANCE
+# 10. FONCTION DE COÛT MEAN-VARIANCE (ANNUALISÉE)
 # ============================================================
 
-def mean_variance_cost(weights, expected_returns,
-                    covariance_matrix, 
-                    lambda_risk=1.0, 
-                    annualization_factor=252
-                    ):
+def mean_variance_cost(
+    weights: np.ndarray,
+    expected_returns: np.ndarray,
+    covariance_matrix: np.ndarray,
+    lambda_risk: float = 1.0,
+    annualization_factor: int = 252
+) -> float:
     """
-    Construire une fonction de coût de type mean-variance.
+    Fonction de coût mean-variance annualisée :
+
+        J(w) = λ · T · wᵀΣw  −  T · wᵀµ
+
+    où T = annualization_factor.
+
+    Minimiser J(w) revient à maximiser l'utilité espérée d'un agent
+    avec aversion au risque λ (approximation quadratique de U).
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur des poids.
-    expected_returns : array-like
-        Rendements moyens estimés.
-    covariance_matrix : array-like
-        Matrice de covariance.
-    lambda_risk : float
-        Paramètre d’aversion au risque.
+    weights : (n,)
+    expected_returns : (n,)
+    covariance_matrix : (n, n)
+    lambda_risk : float > 0 — coefficient d'aversion au risque
+    annualization_factor : int
 
     Retour
     ------
     cost : float
-        Valeur de la fonction de coût.
-
-    Idée générale
-    -------------
-    La fonction de coût peut pénaliser :
-    - le risque du portefeuille
-    - et récompenser le rendement espéré
-
-    Forme possible
-    --------------
-    J(w) = lambda_risk * variance - expected_return
-
-    Remarque
-    --------
-    La forme exacte doit être choisie de manière cohérente
-    avec l’objectif du projet.
     """
-    expected_return = portfolio_expected_return(weights, expected_returns)
-    variance = portfolio_variance(weights, covariance_matrix)
+    T = annualization_factor
+    var_p = portfolio_variance(weights, covariance_matrix)
+    mu_p  = portfolio_expected_return(weights, expected_returns)
+    return lambda_risk * T * var_p - T * mu_p
 
-    ann_return = expected_return * annualization_factor
-    ann_variance = variance * annualization_factor
-
-    cost = lambda_risk * ann_variance - ann_return
-
-    return cost
 
 # ============================================================
-# 10. Gradient de la variance moyenne
+# 11. GRADIENT ANALYTIQUE DE J(w)
 # ============================================================
 
 def mean_variance_gradient(
-  weights,
-  expected_returns,
-  covariance_matrix,
-  lambda_risk=1.0,
-  annualization_factor=252      
-):
+    weights: np.ndarray,
+    expected_returns: np.ndarray,
+    covariance_matrix: np.ndarray,
+    lambda_risk: float = 1.0,
+    annualization_factor: int = 252
+) -> np.ndarray:
     """
-    Gradient analytique de mean_variance_cost.
+    Gradient analytique exact de mean_variance_cost :
 
-    Formule
-    ____
-    dJ/dw = 2 * lambda_risk * annualization_factor * Sigma @ w -
-    annualization_factor * mu
-    """
-    weights = np.array(weights, dtype=float)
-    expected_returns = np.array(expected_returns, dtype=float)
-    covariance_matrix = np.array(covariance_matrix, dtype=float)
+        ∇_w J = T · (2λ Σw − µ)
 
-    grad_variance = 2 * covariance_matrix @ weights
-    grad_return = annualization_factor * expected_returns
+    Dérivation :
+        ∂/∂w [λT · wᵀΣw] = 2λT Σw   (Σ symétrique)
+        ∂/∂w [−T · wᵀµ]  = −T µ
 
-    gradient = annualization_factor * ( lambda_risk * grad_variance - grad_return )
-
-    return gradient
-
-# ===========================================================
-# 11. Repartir les poids
-# ===========================================================
-
-def split_weights(weights):
-    """
-    Séparer les poids en deux groupes : actifs risqués et actif sans risque.
+    Ce gradient est utilisé directement par run_sgd pour éviter
+    le coût O(n²) de l'approximation numérique.
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur de poids du portefeuille.
+    weights : (n,)
+    expected_returns : (n,)
+    covariance_matrix : (n, n)
+    lambda_risk : float
+    annualization_factor : int
 
     Retour
     ------
-    risky_weights : array-like
-        Poids des actifs risqués.
-    risk_free_weight : float
-        Poids de l’actif sans risque.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Identifier le dernier poids comme celui de l’actif sans risque
-    2. Séparer les deux groupes de poids
-    3. Retourner les deux parties
-
-    Utilité
-    -------
-    Permet de calculer le rendement espéré et la variance
-    en tenant compte d’un actif sans risque.
+    grad : (n,) ndarray
     """
-    weights = np.array(weights, dtype=float)
-    
-    if len(weights) < 2:
-        raise ValueError("Weights vector must have at least 2 elements to split.")
-
-    return weights[:-1], float(weights[-1])
+    w   = np.asarray(weights, dtype=float)
+    mu  = np.asarray(expected_returns, dtype=float)
+    Sig = np.asarray(covariance_matrix, dtype=float)
+    T   = annualization_factor
+    return T * (2.0 * lambda_risk * Sig @ w - mu)
 
 
 # ============================================================
-# 10. VERSION AVEC RENDEMENT CIBLE
+# 12. FONCTION DE COÛT AVEC RENDEMENT CIBLE
 # ============================================================
 
-def target_return_cost(weights, expected_returns, covariance_matrix, target_return, alpha=10):
+def target_return_cost(
+    weights: np.ndarray,
+    expected_returns: np.ndarray,
+    covariance_matrix: np.ndarray,
+    target_return: float,
+    alpha: float = 10.0
+) -> float:
     """
-    Construire une fonction de coût pour minimiser le risque
-    sous contrainte d’un rendement cible.
+    Minimiser le risque sous contrainte souple de rendement cible.
+
+    J(w) = wᵀΣw  +  α · (wᵀµ − µ_cible)²
+
+    Le terme de pénalité quadratique α·(E[R_p] - µ_cible)²
+    pousse le portefeuille vers le rendement souhaité
+    sans résoudre un problème contraint explicitement.
 
     Paramètres
     ----------
-    weights : array-like
-        Vecteur des poids.
-    expected_returns : array-like
-        Rendements moyens estimés.
-    covariance_matrix : array-like
-        Matrice de covariance.
+    weights : (n,)
+    expected_returns : (n,)
+    covariance_matrix : (n, n)
     target_return : float
-        Niveau de rendement visé.
+    alpha : float — coefficient de pénalité (plus α grand → contrainte plus stricte)
 
     Retour
     ------
     cost : float
-        Valeur de la fonction de coût.
-
-    Idée générale
-    -------------
-    On cherche un portefeuille peu risqué
-    tout en restant proche d’un rendement cible.
-
-    Remarque
-    --------
-    Cette fonction peut être utile pour comparer
-    plusieurs formulations de l’optimisation.
     """
-    expected_return = portfolio_expected_return(weights, expected_returns)
-    variance = portfolio_variance(weights, covariance_matrix)
+    var_p = portfolio_variance(weights, covariance_matrix)
+    mu_p  = portfolio_expected_return(weights, expected_returns)
+    return var_p + alpha * (mu_p - target_return) ** 2
 
-    return_penalty = (expected_return - target_return) ** 2
-
-    # coefficient de pénalité
-    cost = variance + alpha * return_penalty
-
-    return cost
 
 # ============================================================
-# 11. AJOUT EXPLICITE D’UN ACTIF SANS RISQUE
+# 13. AJOUT D'UN ACTIF SANS RISQUE
 # ============================================================
 
-def add_risk_free_asset(expected_returns, covariance_matrix, risk_free_rate):
+def add_risk_free_asset(
+    expected_returns: np.ndarray,
+    covariance_matrix: np.ndarray,
+    risk_free_rate: float
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    Ajouter explicitement un actif sans risque au portefeuille.
+    Étendre µ et Σ pour inclure un actif sans risque.
 
-    Paramètres
-    ----------
-    expected_returns : array-like
-        Rendements moyens des actifs risqués.
-    covariance_matrix : array-like
-        Matrice de covariance des actifs risqués.
-    risk_free_rate : float
-        Taux sans risque.
+    Propriétés de l'actif sans risque :
+        Var[r_f] = 0          → ligne et colonne nulles dans Σ
+        Cov[r_f, r_i] = 0    → pas de corrélation avec les actifs risqués
 
     Retour
     ------
-    new_expected_returns : array-like
-        Vecteur de rendements avec actif sans risque ajouté.
-    new_covariance_matrix : array-like
-        Matrice de covariance élargie.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Ajouter le rendement sans risque au vecteur des espérances
-    2. Ajouter une ligne et une colonne de covariance nulle
-    3. Retourner les nouvelles structures
-
-    Remarque
-    --------
-    Un actif sans risque a une variance nulle
-    et une covariance nulle avec les actifs risqués
-    dans cette modélisation simplifiée.
+    mu_ext  : (n+1,)   — µ avec r_f en dernière position
+    Sig_ext : (n+1, n+1) — Σ étendue (dernière ligne/colonne = 0)
     """
-    expected_returns = np.array(expected_returns, dtype=float)
-    covariance_matrix = np.array(covariance_matrix, dtype=float)
+    mu  = np.asarray(expected_returns, dtype=float)
+    Sig = np.asarray(covariance_matrix, dtype=float)
+    n = len(mu)
+    mu_ext  = np.append(mu, risk_free_rate)
+    Sig_ext = np.zeros((n + 1, n + 1))
+    Sig_ext[:n, :n] = Sig
+    return mu_ext, Sig_ext
 
-    n = expected_returns.shape[0]
-
-    new_expected_returns = np.append(expected_returns, risk_free_rate)
-
-    new_covariance_matrix = np.zeros((n + 1, n + 1))
-    new_covariance_matrix[:n, :n] = covariance_matrix
-
-    return new_expected_returns, new_covariance_matrix
 
 # ============================================================
-# 12. CONTRAINTES DE BASE
+# 14. SÉPARATION DES POIDS (risqués / sans risque)
 # ============================================================
 
-def enforce_portfolio_constraints(weights, nonnegative=True):
+def split_weights(weights: np.ndarray) -> tuple[np.ndarray, float]:
     """
-    Appliquer les contraintes de base sur les poids du portefeuille.
+    Séparer le vecteur de poids en actifs risqués + actif sans risque.
 
-    Paramètres
-    ----------
-    weights : array-like
-        Vecteur des poids.
-    nonnegative : bool
-        Si True, interdit les poids négatifs.
+    Convention : le dernier poids est celui de l'actif sans risque.
 
     Retour
     ------
-    constrained_weights : array-like
-        Vecteur de poids corrigé.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Imposer éventuellement la positivité
-    2. Renormaliser pour que la somme fasse 1
-
-    Utilité
-    -------
-    Cette fonction sera utile après chaque mise à jour dans sgd_optimizer.py
+    (w_risky, w_rf) : ((n,), float)
     """
-    weights = np.array(weights, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    if len(w) < 2:
+        raise ValueError("Il faut au moins 2 poids pour effectuer la séparation.")
+    return w[:-1], float(w[-1])
 
+
+# ============================================================
+# 15. CONTRAINTES DE BASE
+# ============================================================
+
+def enforce_portfolio_constraints(
+    weights: np.ndarray,
+    nonnegative: bool = True,
+    exact_simplex: bool = False
+) -> np.ndarray:
+    """
+    Appliquer les contraintes du portefeuille.
+
+    Deux modes :
+    - exact_simplex=True  : projection exacte sur Δ (optimal au sens L²)
+    - exact_simplex=False : clip + normalisation (plus rapide)
+
+    Paramètres
+    ----------
+    weights : (n,)
+    nonnegative : bool — interdit vente à découvert
+    exact_simplex : bool — utilise l'algorithme de Duchi et al.
+
+    Retour
+    ------
+    w_constrained : (n,)
+    """
+    w = np.asarray(weights, dtype=float)
     if nonnegative:
-        return project_to_nonnegative_weights(weights)
-
-    return normalize_weights(weights)
-
-# ============================================================
-# 13. NOTES D’UTILISATION
-# ============================================================
-
-"""
-Utilisation typique
--------------------
-1. Récupérer les prix de plusieurs actifs avec market_data.py
-2. Calculer leurs rendements
-3. Estimer :
-    - les rendements moyens
-    - la matrice de covariance
-4. Définir un portefeuille via un vecteur de poids
-5. Calculer :
-    - le rendement espéré
-    - le risque
-    - la fonction de coût
-6. Optimiser les poids avec sgd_optimizer.py
-
-Exemple logique
----------------
-returns_matrix -> expected_returns + covariance_matrix -> portfolio metrics -> cost function
-
-Remarque importante
--------------------
-Ce module ne réalise pas l’optimisation lui-même.
-Il fournit uniquement les briques mathématiques nécessaires.
-
-Séparation des rôles
---------------------
-- market_data.py : fournit les données
-- portfolio_math.py : définit les formules mathématiques
-- sgd_optimizer.py : optimise les poids
-- portfolio_backtest.py : évalue les stratégies obtenues
-"""
+        if exact_simplex:
+            return project_to_simplex(w)
+        return project_to_nonnegative_weights(w)
+    return normalize_weights(w)

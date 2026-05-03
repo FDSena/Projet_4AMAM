@@ -1,14 +1,46 @@
 """
 ml_signals.py
+=============
+Génération de signaux d'investissement et de poids dynamiques.
 
-Module de génération de signaux d'investissement et de poids dynamiques
-pour une stratégie de portefeuille multi-actifs.
+Fondements théoriques
+---------------------
+On construit des scores par actif à partir d'indicateurs
+statistiques glissants, puis on les convertit en poids.
 
-Logique financière :
-- construire des features à partir des prix et rendements
-- calculer un score par actif
-- convertir ces scores en poids de portefeuille
-- produire des allocations dynamiques compatibles avec le backtest
+Indicateurs utilisés
+--------------------
+Momentum (fenêtre w) :
+    mom_t = P_t / P_{t-w} − 1      (rendement sur la fenêtre)
+
+Rendement moyen glissant :
+    µ̂_t = (1/w) Σ_{s=t-w+1}^{t} r_s
+
+Volatilité glissante :
+    σ̂_t = std_{w}(r_s)             (Bessel, ddof=1)
+
+Prix vs moyenne mobile :
+    δ_t = (P_t − MA_t) / MA_t
+
+Score rendement/risque (Sharpe simplifié) :
+    SR_t = µ̂_t / σ̂_t
+
+Score composite pondéré :
+    score_t = α·mom_t + β·µ̂_t − γ·σ̂_t
+
+Conversion en poids (long-only)
+--------------------------------
+Pour chaque date t :
+    - on conserve les scores positifs  (s_i = max(score_i, 0))
+    - on normalise :  w_i = s_i / Σ_j s_j
+
+Si tous les scores sont négatifs → fallback "equal" ou "zero".
+
+Biais look-ahead
+----------------
+Les poids calculés à la date t utilisent de l'information jusqu'à t.
+Pour les appliquer au rendement r_{t+1} (non observé à t),
+on décale les poids d'une période AVANT de les passer au backtest.
 """
 
 import numpy as np
@@ -16,314 +48,362 @@ import pandas as pd
 
 
 # ============================================================
-# 1. VALIDATION DES DONNEES
+# 1. UTILITAIRES
 # ============================================================
 
-def ensure_dataframe(data, name="data"):
+def ensure_dataframe(data, name: str = "data") -> pd.DataFrame:
     """
-    Convertir une Series ou array-like en DataFrame.
+    Convertir une entrée en DataFrame (copie défensive).
     """
-    if isinstance(data, pd.Series):
-        return data.to_frame()
-
     if isinstance(data, pd.DataFrame):
         return data.copy()
-
+    if isinstance(data, pd.Series):
+        return data.to_frame()
     try:
         return pd.DataFrame(data)
     except Exception as e:
-        raise ValueError(f"{name} cannot be converted to a DataFrame.") from e
+        raise ValueError(f"'{name}' ne peut pas être converti en DataFrame.") from e
 
 
 # ============================================================
-# 2. CALCUL DES RENDEMENTS
+# 2. CALCUL DES RENDEMENTS SIMPLES
 # ============================================================
 
-def compute_returns(price_data):
+def compute_returns(price_data: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculer les rendements simples à partir des prix.
-    """
-    price_data = ensure_dataframe(price_data, "price_data")
+    Calculer les rendements simples r_t = (P_t − P_{t-1}) / P_{t-1}.
 
-    returns = price_data.pct_change()
-    returns = returns.replace([np.inf, -np.inf], np.nan)
-
-    return returns
-
-
-# ============================================================
-# 3. CONSTRUCTION DES FEATURES
-# ============================================================
-
-def build_features(price_data, returns_data=None, window=20):
-    """
-    Construire des variables explicatives par actif.
-
-    Features :
-    - momentum
-    - rendement moyen glissant
-    - volatilité glissante
-    - position du prix par rapport à sa moyenne mobile
-    - score rendement / volatilité
+    La première ligne est NaN (pas de rendement à t=0).
+    Les Inf sont remplacés par NaN.
     """
     price_data = ensure_dataframe(price_data, "price_data")
+    returns    = price_data.pct_change()
+    return returns.replace([np.inf, -np.inf], np.nan)
 
+
+# ============================================================
+# 3. CONSTRUCTION DES FEATURES STATISTIQUES
+# ============================================================
+
+def build_features(
+    price_data: pd.DataFrame,
+    returns_data: pd.DataFrame | None = None,
+    window: int = 20
+) -> dict[str, pd.DataFrame]:
+    """
+    Calculer les indicateurs statistiques glissants sur la fenêtre w.
+
+    Indicateurs retournés
+    ---------------------
+    - momentum           : P_t / P_{t-w} − 1
+    - rolling_mean_return: µ̂_t  = mean_{w}(r)
+    - rolling_volatility : σ̂_t  = std_{w}(r),  ddof=1
+    - price_vs_ma        : (P_t − MA_t) / MA_t
+    - risk_adjusted_score: µ̂_t / σ̂_t  (Sharpe glissant)
+
+    Paramètres
+    ----------
+    price_data : (T, n) DataFrame — prix
+    returns_data : (T, n) ou None — si None, calculé automatiquement
+    window : int > 1
+
+    Retour
+    ------
+    dict[str, DataFrame]
+    """
+    price_data = ensure_dataframe(price_data, "price_data")
     if returns_data is None:
         returns_data = compute_returns(price_data)
     else:
         returns_data = ensure_dataframe(returns_data, "returns_data")
 
     if window <= 1:
-        raise ValueError("window must be greater than 1.")
+        raise ValueError("window doit être > 1.")
 
-    # Momentum : performance sur une fenêtre donnée
-    momentum = price_data / price_data.shift(window) - 1
-
-    # Rendement moyen glissant
-    rolling_mean_return = returns_data.rolling(window).mean()
-
-    # Volatilité glissante
-    rolling_volatility = returns_data.rolling(window).std()
-
-    # Moyenne mobile
-    moving_average = price_data.rolling(window).mean()
-    price_vs_ma = (price_data - moving_average) / moving_average
-
-    # Score rendement / risque
-    risk_adjusted_score = rolling_mean_return / rolling_volatility
+    momentum             = price_data / price_data.shift(window) - 1.0
+    rolling_mean_return  = returns_data.rolling(window, min_periods=window).mean()
+    rolling_volatility   = returns_data.rolling(window, min_periods=window).std(ddof=1)
+    moving_average       = price_data.rolling(window, min_periods=window).mean()
+    price_vs_ma          = (price_data - moving_average) / moving_average
+    risk_adjusted_score  = rolling_mean_return / rolling_volatility.replace(0.0, np.nan)
 
     features = {
-        "momentum": momentum,
+        "momentum":            momentum,
         "rolling_mean_return": rolling_mean_return,
-        "rolling_volatility": rolling_volatility,
-        "price_vs_ma": price_vs_ma,
+        "rolling_volatility":  rolling_volatility,
+        "price_vs_ma":         price_vs_ma,
         "risk_adjusted_score": risk_adjusted_score,
     }
-
-    # Nettoyage
-    for key in features:
-        features[key] = features[key].replace([np.inf, -np.inf], np.nan)
+    # Nettoyage numérique
+    for k in features:
+        features[k] = features[k].replace([np.inf, -np.inf], np.nan)
 
     return features
 
 
 # ============================================================
-# 4. CONSTRUCTION D'UN SCORE FINANCIER PAR ACTIF
+# 4. SCORE COMPOSITE PONDÉRÉ
 # ============================================================
 
 def build_asset_scores(
-    price_data,
-    returns_data=None,
-    window=20,
-    momentum_weight=0.5,
-    return_weight=0.3,
-    risk_weight=0.2
-):
+    price_data: pd.DataFrame,
+    returns_data: pd.DataFrame | None = None,
+    window: int = 20,
+    momentum_weight: float = 0.5,
+    return_weight: float = 0.3,
+    risk_weight: float = 0.2
+) -> pd.DataFrame:
     """
-    Construire un score par actif.
+    Calculer un score composite par actif et par date :
 
-    Idée :
-    - un actif avec momentum positif est favorisé
-    - un actif avec rendement moyen positif est favorisé
-    - un actif très volatil est pénalisé
+        score = α · mom  +  β · µ̂  −  γ · σ̂
 
-    Score simplifié :
-    score = momentum_weight * momentum
-          + return_weight * rolling_mean_return
-          - risk_weight * rolling_volatility
+    avec α + β + γ = 1 (convention de normalisation des poids).
+
+    Interprétation financière :
+    - momentum positif  → actif en tendance haussière (+)
+    - rendement moyen positif → historique favorable    (+)
+    - volatilité élevée → actif risqué, pénalisé        (−)
+
+    Paramètres
+    ----------
+    momentum_weight : α ≥ 0
+    return_weight   : β ≥ 0
+    risk_weight     : γ ≥ 0  (pénalité sur la volatilité)
+
+    Retour
+    ------
+    scores : (T, n) DataFrame
     """
-    features = build_features(price_data, returns_data, window)
-
-    momentum = features["momentum"]
-    rolling_mean_return = features["rolling_mean_return"]
-    rolling_volatility = features["rolling_volatility"]
-
+    feat = build_features(price_data, returns_data, window)
     scores = (
-        momentum_weight * momentum
-        + return_weight * rolling_mean_return
-        - risk_weight * rolling_volatility
+        momentum_weight * feat["momentum"]
+        + return_weight  * feat["rolling_mean_return"]
+        - risk_weight    * feat["rolling_volatility"]
     )
-
-    scores = scores.replace([np.inf, -np.inf], np.nan)
-
-    return scores
+    return scores.replace([np.inf, -np.inf], np.nan)
 
 
 # ============================================================
-# 5. VERSION SCORE MOMENTUM / VOLATILITE
+# 5. SCORE MOMENTUM / VOLATILITÉ (SHARPE GLISSANT)
 # ============================================================
 
-def build_momentum_volatility_scores(price_data, returns_data=None, window=20):
+def build_momentum_volatility_scores(
+    price_data: pd.DataFrame,
+    returns_data: pd.DataFrame | None = None,
+    window: int = 20
+) -> pd.DataFrame:
     """
-    Construire un score de type momentum / volatilité.
+    Score de type Sharpe glissant :
 
-    Logique :
-    - momentum élevé = actif attractif
-    - volatilité élevée = actif risqué
-    - donc on favorise les actifs avec bon momentum relativement au risque
+        score_t = mom_t / σ̂_t
+
+    Favorise les actifs avec fort momentum relativement à leur risque.
+    Correspond à une maximisation du ratio de Sharpe instantané.
+    Si σ̂_t ≈ 0, le score est mis à NaN (indéfini).
+
+    Paramètres
+    ----------
+    price_data : (T, n)
+    returns_data : (T, n) or None
+    window : int
+
+    Retour
+    ------
+    scores : (T, n) DataFrame
     """
     price_data = ensure_dataframe(price_data, "price_data")
-
     if returns_data is None:
         returns_data = compute_returns(price_data)
     else:
         returns_data = ensure_dataframe(returns_data, "returns_data")
 
-    momentum = price_data / price_data.shift(window) - 1
-    volatility = returns_data.rolling(window).std()
+    momentum   = price_data / price_data.shift(window) - 1.0
+    volatility = returns_data.rolling(window, min_periods=window).std(ddof=1)
 
-    scores = momentum / volatility
-    scores = scores.replace([np.inf, -np.inf], np.nan)
-
-    return scores
+    scores = momentum / volatility.replace(0.0, np.nan)
+    return scores.replace([np.inf, -np.inf], np.nan)
 
 
 # ============================================================
 # 6. CONVERSION DES SCORES EN POIDS
 # ============================================================
 
-def scores_to_weights(scores, long_only=True, fallback="equal"):
+def scores_to_weights(
+    scores: pd.DataFrame,
+    long_only: bool = True,
+    fallback: str = "equal"
+) -> pd.DataFrame:
     """
-    Convertir des scores par actif en poids de portefeuille.
+    Convertir les scores en poids de portefeuille normalisés.
+
+    Méthode long-only (long_only=True)
+    -----------------------------------
+    1. Clip : s_i ← max(s_i, 0)
+    2. Normalise : w_i = s_i / Σ_j s_j
+
+    Méthode long-short (long_only=False)
+    -------------------------------------
+    1. Normalise par la somme des valeurs absolues :
+       w_i = s_i / Σ_j |s_j|
+    → les actifs avec score négatif sont vendus à découvert.
+
+    Fallback (ligne avec somme = 0 ou NaN complet)
+    -----------------------------------------------
+    "equal" : poids égaux 1/n  (portefeuille non informatif)
+    "zero"  : poids nuls       (pas d'investissement ce jour-là)
 
     Paramètres
     ----------
-    scores : DataFrame
-        Scores par actif et par date.
-
+    scores : (T, n) DataFrame
     long_only : bool
-        Si True, les scores négatifs sont remplacés par 0.
-        Cela interdit la vente à découvert.
-
-    fallback : str
-        Stratégie si tous les scores sont nuls sur une date.
-        - "equal" : portefeuille équipondéré
-        - "zero" : aucun investissement
+    fallback : "equal" ou "zero"
 
     Retour
     ------
-    weights : DataFrame
-        Poids dynamiques du portefeuille.
+    weights : (T, n) DataFrame, chaque ligne somme à 1 (ou 0 si fallback="zero")
     """
     scores = ensure_dataframe(scores, "scores")
+    n = scores.shape[1]
 
     if long_only:
-        positive_scores = scores.clip(lower=0)
+        s    = scores.clip(lower=0.0)
+        denom = s.sum(axis=1).replace(0.0, np.nan)
     else:
-        positive_scores = scores.copy()
+        s    = scores.copy()
+        denom = s.abs().sum(axis=1).replace(0.0, np.nan)
 
-    if long_only :
-        row_sums =positive_scores.sum(axis=1)
-    else:
-        row_sums = positive_scores.abs().sum(axis=1)
-
-    weights = positive_scores.div(row_sums.replace(0, np.nan), axis=0)
+    weights = s.div(denom, axis=0)
 
     if fallback == "equal":
-        equal_weights = 1.0 / scores.shape[1]
-        weights = weights.fillna(equal_weights)
-
+        weights = weights.fillna(1.0 / n)
     elif fallback == "zero":
         weights = weights.fillna(0.0)
-
     else:
-        raise ValueError("fallback must be 'equal' or 'zero'.")
+        raise ValueError("fallback doit être 'equal' ou 'zero'.")
 
     return weights
 
 
 # ============================================================
-# 7. SIGNAL DISCRET PAR ACTIF
+# 7. SIGNAUX DISCRETS
 # ============================================================
 
-def scores_to_signals(scores, threshold=0.0):
+def scores_to_signals(
+    scores: pd.DataFrame,
+    threshold: float = 0.0
+) -> pd.DataFrame:
     """
-    Transformer les scores en signaux discrets.
+    Discrétiser les scores en signaux d'investissement :
+        +1  si score >  threshold   (position longue)
+         0  si |score| ≤ threshold  (neutre)
+        −1  si score < −threshold   (position courte)
 
-    Sortie :
-    - 1 : actif attractif
-    - 0 : neutre
-    - -1 : actif défavorable
+    Paramètres
+    ----------
+    scores : (T, n)
+    threshold : float ≥ 0
+
+    Retour
+    ------
+    signals : (T, n) DataFrame avec valeurs dans {-1, 0, 1}
     """
-    scores = ensure_dataframe(scores, "scores")
-
+    scores  = ensure_dataframe(scores, "scores")
     signals = pd.DataFrame(0, index=scores.index, columns=scores.columns)
-
-    signals[scores > threshold] = 1
+    signals[scores >  threshold] =  1
     signals[scores < -threshold] = -1
-
     return signals
 
 
 # ============================================================
-# 8. CONSTRUCTION DE CIBLE POUR ML OPTIONNEL
+# 8. CIBLE POUR MODÈLE SUPERVISÉ
 # ============================================================
 
-def build_target(returns_data, horizon=1, mode="binary"):
+def build_target(
+    returns_data: pd.DataFrame,
+    horizon: int = 1,
+    mode: str = "binary"
+) -> pd.DataFrame:
     """
-    Construire une cible future pour un modèle supervisé éventuel.
+    Construire une variable cible future pour l'apprentissage supervisé.
 
-    Modes :
-    - binary : 1 si rendement futur positif, 0 sinon
-    - continuous : rendement futur
-    - signal : -1, 0 ou 1 selon le signe du rendement futur
+    Modes
+    -----
+    "binary"     : 1 si r_{t+h} > 0, 0 sinon
+    "continuous" : r_{t+h}  (régression)
+    "signal"     : signe(r_{t+h}) ∈ {-1, 0, 1}
+
+    Paramètres
+    ----------
+    returns_data : (T, n)
+    horizon : int > 0 — nombre de périodes dans le futur
+    mode : str
+
+    Retour
+    ------
+    target : (T - horizon, n) DataFrame (les dernières lignes sont supprimées)
     """
     returns_data = ensure_dataframe(returns_data, "returns_data")
-
     if horizon <= 0:
-        raise ValueError("horizon must be positive.")
+        raise ValueError("horizon doit être strictement positif.")
 
-    future_return = returns_data.shift(-horizon)
+    future = returns_data.shift(-horizon)
 
     if mode == "binary":
-        target = (future_return > 0).astype(int)
-
+        target = (future > 0).astype(int)
     elif mode == "continuous":
-        target = future_return
-
+        target = future
     elif mode == "signal":
-        target = np.sign(future_return)
-
+        target = np.sign(future)
     else:
-        raise ValueError("mode must be 'binary', 'continuous', or 'signal'.")
+        raise ValueError("mode doit être 'binary', 'continuous' ou 'signal'.")
 
     return target.dropna()
 
 
 # ============================================================
-# 9. ALIGNEMENT AVEC LES RENDEMENTS
+# 9. ALIGNEMENT ANTI LOOK-AHEAD
 # ============================================================
 
-def align_weights_with_returns(weights, returns_data):
+def align_weights_with_returns(
+    weights: pd.DataFrame,
+    returns_data: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Aligner les poids dynamiques avec les rendements utilisés en backtest.
+    Décaler les poids d'une période pour éviter la fuite temporelle.
 
-    Important :
-    Les poids calculés à la date t doivent être appliqués au rendement futur.
-    On décale donc les poids d'une période pour limiter la fuite temporelle.
+    Principe : les poids calculés avec l'information disponible à t
+    ne peuvent être appliqués qu'au rendement r_{t+1}.
+    On effectue donc :  w_aligned_t = w_{t-1}
+
+    Les premières lignes (NaN après décalage) et les dernières lignes
+    (sans rendement associé) sont supprimées.
+
+    Paramètres
+    ----------
+    weights : (T, n) — poids calculés à chaque date
+    returns_data : (T, n) — rendements réalisés
+
+    Retour
+    ------
+    (shifted_weights, returns_aligned) : deux DataFrames de même index
     """
-
-    weights = ensure_dataframe(weights, "weights")
+    weights      = ensure_dataframe(weights, "weights")
     returns_data = ensure_dataframe(returns_data, "returns_data")
 
     if list(weights.columns) != list(returns_data.columns):
-        raise ValueError("weights and returns_data must have the same columns.")
+        raise ValueError("weights et returns_data doivent avoir les mêmes colonnes.")
 
+    shifted = weights.shift(1)                            # décalage d'une période
 
-    shifted_weights = weights.shift(1)
+    common  = shifted.index.intersection(returns_data.index)
+    shifted = shifted.loc[common].dropna(how="all")
+    ret_aligned = returns_data.loc[shifted.index]
 
+    if len(shifted) == 0:
+        raise ValueError("Plus aucune observation après le décalage. Vérifier les données.")
 
-    common_index = shifted_weights.index.intersection(returns_data.index)
-    shifted_weights = shifted_weights.loc[common_index]
-    returns_aligned = returns_data.loc[common_index]
-
-    shifted_weights = shifted_weights.dropna(how='all')
-    returns_aligned = returns_aligned.loc[shifted_weights.index]
-
-    if len(shifted_weights) == 0:
-        raise ValueError("No valid weights after shifting. Check the input data.")
-
-    return shifted_weights, returns_aligned
+    return shifted, ret_aligned
 
 
 # ============================================================
@@ -331,111 +411,81 @@ def align_weights_with_returns(weights, returns_data):
 # ============================================================
 
 def build_ml_signals(
-    price_data,
-    returns_data=None,
-    window=20,
-    method="momentum_volatility",
-    long_only=True,
-    fallback="equal",
-    threshold=0.0,
-    align_for_backtest=True
-):
+    price_data: pd.DataFrame,
+    returns_data: pd.DataFrame | None = None,
+    window: int = 20,
+    method: str = "momentum_volatility",
+    long_only: bool = True,
+    fallback: str = "equal",
+    threshold: float = 0.0,
+    align_for_backtest: bool = True
+) -> dict:
     """
-    Pipeline complet de génération de signaux et poids dynamiques.
+    Pipeline complet de génération de signaux et de poids dynamiques.
+
+    Étapes
+    ------
+    1. Calcul des rendements si non fournis
+    2. Construction des features statistiques
+    3. Calcul des scores selon la méthode choisie
+    4. Discrétisation en signaux {-1, 0, 1}
+    5. Conversion en poids normalisés
+    6. Décalage anti look-ahead (si align_for_backtest=True)
+
+    Méthodes disponibles
+    --------------------
+    "momentum_volatility" : score = mom / σ̂  (Sharpe glissant)
+    "financial_score"     : score composite pondéré (α·mom + β·µ̂ − γ·σ̂)
 
     Paramètres
     ----------
-    price_data : DataFrame
-        Prix des actifs.
-
-    returns_data : DataFrame or None
-        Rendements des actifs. Si None, ils sont calculés.
-
-    window : int
-        Fenêtre utilisée pour les indicateurs glissants.
-
+    price_data : (T, n) DataFrame
+    returns_data : (T, n) ou None
+    window : int — fenêtre glissante
     method : str
-        Méthode de construction du score :
-        - "momentum_volatility"
-        - "financial_score"
-
     long_only : bool
-        Interdit ou non les poids négatifs.
-
-    fallback : str
-        Que faire si aucun actif n'a un score positif :
-        - "equal"
-        - "zero"
-
-    threshold : float
-        Seuil utilisé pour les signaux discrets.
-
+    fallback : "equal" ou "zero"
+    threshold : float — seuil de discrétisation
     align_for_backtest : bool
-        Si True, décale les poids d'une période pour éviter la fuite temporelle.
 
     Retour
     ------
-    results : dict
-        Contient :
-        - features
-        - scores
-        - signals
-        - weights
-        - weights_for_backtest
-        - returns_for_backtest
+    dict avec :
+      "features"             : dict[str, DataFrame]
+      "scores"               : (T, n) DataFrame
+      "signals"              : (T, n) DataFrame  ∈ {-1, 0, 1}
+      "weights"              : (T, n) DataFrame  (avant décalage)
+      "weights_for_backtest" : (T', n) DataFrame (décalés, si align=True)
+      "returns_for_backtest" : (T', n) DataFrame (alignés, si align=True)
     """
     price_data = ensure_dataframe(price_data, "price_data")
-
     if returns_data is None:
         returns_data = compute_returns(price_data)
     else:
         returns_data = ensure_dataframe(returns_data, "returns_data")
 
-    features = build_features(
-        price_data=price_data,
-        returns_data=returns_data,
-        window=window
-    )
+    features = build_features(price_data, returns_data, window)
 
     if method == "momentum_volatility":
-        scores = build_momentum_volatility_scores(
-            price_data=price_data,
-            returns_data=returns_data,
-            window=window
-        )
-
+        scores = build_momentum_volatility_scores(price_data, returns_data, window)
     elif method == "financial_score":
-        scores = build_asset_scores(
-            price_data=price_data,
-            returns_data=returns_data,
-            window=window
-        )
-
+        scores = build_asset_scores(price_data, returns_data, window)
     else:
-        raise ValueError("method must be 'momentum_volatility' or 'financial_score'.")
+        raise ValueError("method doit être 'momentum_volatility' ou 'financial_score'.")
 
-    signals = scores_to_signals(scores, threshold=threshold)
-
-    weights = scores_to_weights(
-        scores=scores,
-        long_only=long_only,
-        fallback=fallback
-    )
+    signals = scores_to_signals(scores, threshold)
+    weights = scores_to_weights(scores, long_only, fallback)
 
     results = {
         "features": features,
-        "scores": scores,
-        "signals": signals,
-        "weights": weights
+        "scores":   scores,
+        "signals":  signals,
+        "weights":  weights,
     }
 
     if align_for_backtest:
-        weights_for_backtest, returns_for_backtest = align_weights_with_returns(
-            weights=weights,
-            returns_data=returns_data
-        )
-
-        results["weights_for_backtest"] = weights_for_backtest
-        results["returns_for_backtest"] = returns_for_backtest
+        w_bt, r_bt = align_weights_with_returns(weights, returns_data)
+        results["weights_for_backtest"] = w_bt
+        results["returns_for_backtest"] = r_bt
 
     return results

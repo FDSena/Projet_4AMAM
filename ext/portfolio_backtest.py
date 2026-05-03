@@ -1,622 +1,516 @@
 """
 portfolio_backtest.py
+=====================
+Évaluation empirique des stratégies de portefeuille.
 
-Description
------------
-Ce module est dédié au backtesting des stratégies de portefeuille.
+Fondements théoriques
+---------------------
+Le backtest simule la performance historique d'une stratégie.
+On suppose des rendements simples r_t pour chaque actif.
 
-Son rôle est de :
-- simuler l’évolution d’un portefeuille dans le temps
-- appliquer des poids fixes ou dynamiques
-- calculer les performances obtenues
-- comparer plusieurs stratégies d’investissement
+Rendement du portefeuille à la date t :
+    R_p,t = wᵀ r_t
 
-Ce module appartient à la partie extension du projet.
-Il sera utilisé avec :
-- market_data.py
-- portfolio_math.py
-- sgd_optimizer.py
-- éventuellement ml_signals.py
-- les notebooks d’analyse
+Valeur cumulée (avec valeur initiale V₀) :
+    V_t = V₀ · ∏_{s=1}^{t} (1 + R_p,s)
+
+Métriques de performance
+------------------------
+Rendement cumulé    : V_T / V₀ − 1
+Rendement annualisé : (V_T / V₀)^(T_ann/T) − 1
+Volatilité ann.     : √T_ann · std(R_p,t)
+Ratio de Sharpe     : (µ_exc · T_ann) / (σ · √T_ann)
+                    = µ_exc · √T_ann / σ
+Max drawdown        : min_t (V_t − max_{s≤t} V_s) / max_{s≤t} V_s
+
+Biais look-ahead (stratégies dynamiques)
+----------------------------------------
+Les poids calculés à la date t utilisent de l'information disponible
+jusqu'à t. Pour éviter la fuite temporelle, on décale les poids
+d'une période : w_{t+1} est appliqué au rendement r_{t+1}.
+Ce décalage est géré dans ml_signals.py (align_weights_with_returns).
 """
-
-
-# ============================================================
-# IMPORTS
-# ============================================================
 
 import numpy as np
 import pandas as pd
-from ext.portfolio_math import portfolio_volatility, estimate_covariance_matrix
+from ext.portfolio_math import (
+    portfolio_volatility,
+    estimate_covariance_matrix,
+)
 
 
 # ============================================================
-# 1. CALCUL DU RENDEMENT DU PORTEFEUILLE A CHAQUE DATE
+# 1. RENDEMENTS DU PORTEFEUILLE
 # ============================================================
 
-def compute_portfolio_returns(returns_matrix, weights):
+def compute_portfolio_returns(
+    returns_matrix: pd.DataFrame | np.ndarray,
+    weights: np.ndarray
+) -> pd.Series:
     """
-    Calculer les rendements du portefeuille à partir des rendements
-    des actifs et d’un vecteur de poids.
+    Calculer R_p,t = wᵀ r_t pour chaque date t.
 
     Paramètres
     ----------
-    returns_matrix : DataFrame or array-like
-        Matrice des rendements des actifs.
-        Chaque ligne correspond à une date,
-        chaque colonne correspond à un actif.
-
-    weights : array-like
-        Vecteur des poids du portefeuille.
+    returns_matrix : (T, n) DataFrame ou array
+    weights : (n,)
 
     Retour
     ------
-    portfolio_returns : Series or array-like
-        Série des rendements du portefeuille.
-
-    Formule
-    -------
-    r_portfolio(t) = w^T * r(t)
-
-    Utilité
-    -------
-    Cette fonction permet de transformer des rendements d’actifs
-    en rendements de portefeuille.
+    portfolio_returns : (T,) Series
     """
     if not isinstance(returns_matrix, pd.DataFrame):
         returns_matrix = pd.DataFrame(returns_matrix)
-    
-    weights = np.array(weights, dtype=float)
 
-    if returns_matrix.shape[1] != len(weights):
-        raise ValueError("Le nombre de colonnes de returns_matrix doit correspondre à la longueur de weights.")
-    
-    portfolio_returns = returns_matrix.values @ weights
+    w = np.asarray(weights, dtype=float)
+    if returns_matrix.shape[1] != len(w):
+        raise ValueError(
+            f"returns_matrix a {returns_matrix.shape[1]} colonnes "
+            f"mais weights a {len(w)} éléments."
+        )
 
-    portfolio_returns = pd.Series(
-        portfolio_returns,
+    return pd.Series(
+        returns_matrix.values @ w,
         index=returns_matrix.index,
-        name="Portfolio Returns"
+        name="portfolio_returns"
     )
 
-    return portfolio_returns
 
 # ============================================================
-# 2. EVOLUTION DE LA VALEUR DU PORTEFEUILLE
+# 2. VALEUR CUMULÉE
 # ============================================================
 
-def compute_portfolio_value(portfolio_returns, initial_value=1.0):
+def compute_portfolio_value(
+    portfolio_returns: pd.Series | np.ndarray,
+    initial_value: float = 1.0
+) -> pd.Series:
     """
-    Calculer l’évolution de la valeur cumulée du portefeuille.
+    Calculer V_t = V₀ · ∏_{s=1}^{t} (1 + R_p,s).
 
     Paramètres
     ----------
-    portfolio_returns : Series or array-like
-        Série des rendements du portefeuille.
-    initial_value : float
-        Valeur initiale du portefeuille.
+    portfolio_returns : (T,) Series
+    initial_value : float > 0
 
     Retour
     ------
-    portfolio_value : Series or array-like
-        Valeur du portefeuille au cours du temps.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Partir d’une valeur initiale
-    2. Appliquer les rendements successifs
-    3. Construire la trajectoire cumulée du portefeuille
-
-    Utilité
-    -------
-    Permet de visualiser la performance globale de la stratégie.
+    portfolio_value : (T,) Series
     """
     if not isinstance(portfolio_returns, pd.Series):
         portfolio_returns = pd.Series(portfolio_returns)
-    
     if initial_value <= 0:
         raise ValueError("initial_value doit être strictement positif.")
 
-    cuml_returns = (1 + portfolio_returns).cumprod()
-    portfolio_value =  initial_value * cuml_returns
-
-    portfolio_value.name = "Portfolio Value"
-
-    return portfolio_value
+    return pd.Series(
+        initial_value * (1.0 + portfolio_returns).cumprod(),
+        index=portfolio_returns.index,
+        name="portfolio_value"
+    )
 
 
 # ============================================================
-# 3. RENDEMENT CUMULE
+# 3. RENDEMENT CUMULÉ
 # ============================================================
 
-def compute_cumulative_return(portfolio_value):
+def compute_cumulative_return(portfolio_value: pd.Series) -> float:
     """
-    Calculer le rendement cumulé du portefeuille.
-
-    Paramètres
-    ----------
-    portfolio_value : Series or array-like
-        Série de valeur du portefeuille.
-
-    Retour
-    ------
-    cumulative_return : float
-        Rendement cumulé total.
-
-    Formule
-    -------
-    cumulative_return = final_value / initial_value - 1
-
-    Utilité
-    -------
-    Mesure simple de la performance totale de la stratégie.
+    Rendement cumulé : V_T / V₀ − 1.
     """
     if not isinstance(portfolio_value, pd.Series):
         portfolio_value = pd.Series(portfolio_value)
-
     if len(portfolio_value) < 2:
-        raise ValueError("portfolio_value doit contenir au moins deux valeurs.")
-    
-    initial_value = portfolio_value.iloc[0]
-    final_value = portfolio_value.iloc[-1]
-
-    if initial_value <= 0:
-        raise ValueError("La première valeur de portfolio_value doit être strictement positive.")
-    
-    cuml_return = final_value / initial_value - 1
-
-    return cuml_return
+        raise ValueError("portfolio_value doit contenir au moins 2 valeurs.")
+    V0 = portfolio_value.iloc[0]
+    if V0 <= 0:
+        raise ValueError("La valeur initiale doit être strictement positive.")
+    return float(portfolio_value.iloc[-1] / V0 - 1.0)
 
 
 # ============================================================
-# 4. VOLATILITE DU PORTEFEUILLE
+# 4. RENDEMENT ANNUALISÉ
 # ============================================================
 
-def compute_backtest_volatility(portfolio_returns, annualization_factor=252):
+def compute_annualized_return(
+    portfolio_value: pd.Series,
+    annualization_factor: int = 252
+) -> float:
     """
-    Calculer la volatilité annualisée du portefeuille.
+    Rendement annualisé géométrique :
+
+        r_ann = (V_T / V₀)^(T_ann / T) − 1
+
+    où T = nombre d'observations et T_ann = annualization_factor.
+    """
+    if not isinstance(portfolio_value, pd.Series):
+        portfolio_value = pd.Series(portfolio_value)
+    T = len(portfolio_value)
+    if T < 2:
+        raise ValueError("portfolio_value doit contenir au moins 2 valeurs.")
+    V0 = portfolio_value.iloc[0]
+    VT = portfolio_value.iloc[-1]
+    if V0 <= 0:
+        raise ValueError("La valeur initiale doit être strictement positive.")
+    return float((VT / V0) ** (annualization_factor / T) - 1.0)
+
+
+# ============================================================
+# 5. VOLATILITÉ RÉALISÉE
+# ============================================================
+
+def compute_backtest_volatility(
+    portfolio_returns: pd.Series,
+    annualization_factor: int = 252
+) -> float:
+    """
+    Volatilité annualisée réalisée :
+
+        σ_ann = √T_ann · std(R_p,t)
+
+    L'écart-type est calculé avec le correcteur de Bessel (ddof=1).
 
     Paramètres
     ----------
-    portfolio_returns : Series or array-like
-        Rendements du portefeuille.
+    portfolio_returns : (T,)
     annualization_factor : int
-        Facteur d’annualisation.
 
     Retour
     ------
     volatility : float
-        Volatilité annualisée.
-
-    Utilité
-    -------
-    Mesure du risque observé pendant le backtest.
     """
     if not isinstance(portfolio_returns, pd.Series):
         portfolio_returns = pd.Series(portfolio_returns)
-
     if len(portfolio_returns) < 2:
-        raise ValueError("portfolio_returns doit contenir au moins deux valeurs.")
-    
-    vol = portfolio_returns.std()
-    annualized_volatility = vol * np.sqrt(annualization_factor)
-
-    return annualized_volatility
+        raise ValueError("Il faut au moins 2 rendements.")
+    return float(portfolio_returns.std(ddof=1) * np.sqrt(annualization_factor))
 
 
 # ============================================================
-# 5. RATIO DE SHARPE
+# 6. RATIO DE SHARPE
 # ============================================================
 
-def compute_sharpe_ratio(portfolio_returns, risk_free_rate=0.0, annualization_factor=252):
+def compute_sharpe_ratio(
+    portfolio_returns: pd.Series,
+    risk_free_rate: float = 0.0,
+    annualization_factor: int = 252
+) -> float:
     """
-    Calculer le ratio de Sharpe du portefeuille.
+    Ratio de Sharpe annualisé ex-post :
+
+        SR = (µ_exc · T_ann) / (σ · √T_ann)
+           = (µ_exc / σ) · √T_ann
+
+    où µ_exc = mean(R_p,t − r_f/T_ann) est le rendement excédentaire
+    journalier moyen et σ son écart-type (Bessel).
 
     Paramètres
     ----------
-    portfolio_returns : Series or array-like
-        Rendements du portefeuille.
-    risk_free_rate : float
-        Taux sans risque.
+    portfolio_returns : (T,)
+    risk_free_rate : float — taux annuel
     annualization_factor : int
-        Facteur d’annualisation.
 
     Retour
     ------
-    sharpe_ratio : float
-        Ratio de Sharpe observé.
-
-    Idée générale
-    -------------
-    Le ratio de Sharpe compare le rendement excédentaire
-    au risque pris.
-
-    Utilité
-    -------
-    Permet de comparer la qualité de plusieurs stratégies.
+    sharpe : float  (0.0 si σ ≈ 0)
     """
     if not isinstance(portfolio_returns, pd.Series):
         portfolio_returns = pd.Series(portfolio_returns)
-
     if len(portfolio_returns) < 2:
-        raise ValueError("portfolio_returns doit contenir au moins deux valeurs.")
-    
+        raise ValueError("Il faut au moins 2 rendements.")
+
     rf_daily = risk_free_rate / annualization_factor
+    excess   = portfolio_returns - rf_daily
+    mu_exc   = excess.mean()
+    sigma    = excess.std(ddof=1)
 
-    excess_returns = portfolio_returns - rf_daily
-    mean_excess_return = excess_returns.mean()
-    vol = excess_returns.std()
-
-    if np.isclose(vol, 0.0):
+    if np.isclose(sigma, 0.0):
         return 0.0
-    
-    sharpe_ratio = (mean_excess_return / vol) * np.sqrt(annualization_factor)
+    return float((mu_exc / sigma) * np.sqrt(annualization_factor))
 
-    return sharpe_ratio
 
 # ============================================================
-# 6. DRAWDOWN MAXIMAL
+# 7. MAX DRAWDOWN
 # ============================================================
 
-def compute_max_drawdown(portfolio_value):
+def compute_max_drawdown(portfolio_value: pd.Series) -> float:
     """
-    Calculer le drawdown maximal du portefeuille.
+    Drawdown maximal (valeur négative) :
+
+        MDD = min_t [(V_t − max_{s≤t} V_s) / max_{s≤t} V_s]
+
+    Mesure la perte maximale subie depuis un pic historique.
+    MDD ∈ [−1, 0],  MDD = 0 si la valeur est toujours croissante.
 
     Paramètres
     ----------
-    portfolio_value : Series or array-like
-        Valeur cumulée du portefeuille.
+    portfolio_value : (T,)
 
     Retour
     ------
-    max_drawdown : float
-        Perte maximale observée depuis un plus haut historique.
-
-    Utilité
-    -------
-    Mesure importante du risque de perte dans le temps.
+    max_drawdown : float ≤ 0
     """
     if not isinstance(portfolio_value, pd.Series):
         portfolio_value = pd.Series(portfolio_value)
-
     if len(portfolio_value) < 2:
-        raise ValueError("portfolio_value doit contenir au moins deux valeurs.")
+        raise ValueError("portfolio_value doit contenir au moins 2 valeurs.")
 
-    peak = portfolio_value.cummax()
+    peak     = portfolio_value.cummax()
     drawdown = (portfolio_value - peak) / peak
-    max_drawdown = drawdown.min()
-
-    return max_drawdown
+    return float(drawdown.min())
 
 
 # ============================================================
-# 7. BACKTEST D’UNE STRATEGIE A POIDS FIXES
+# 8. BACKTEST STRATÉGIE STATIQUE
 # ============================================================
 
-def run_static_backtest(returns_matrix, weights,w_rf=0.0,initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
+def run_static_backtest(
+    returns_matrix: pd.DataFrame | np.ndarray,
+    weights: np.ndarray,
+    w_rf: float = 0.0,
+    initial_value: float = 1.0,
+    risk_free_rate: float = 0.0,
+    annualization_factor: int = 252
+) -> dict:
     """
-    Exécuter le backtest d’une stratégie à poids fixes.
+    Backtester une stratégie à poids constants.
+
+    Le rendement journalier de l'actif sans risque est :
+        r_f_daily = (risk_free_rate / T_ann) · w_rf
+
+    Il est ajouté au rendement quotidien du portefeuille risqué.
 
     Paramètres
     ----------
-    returns_matrix : DataFrame or array-like
-        Rendements des actifs.
-    weights : array-like
-        Poids constants du portefeuille.
+    returns_matrix : (T, n)
+    weights : (n,) — poids sur les actifs risqués (somme ≤ 1)
+    w_rf : float — part investie en actif sans risque
     initial_value : float
-        Valeur initiale du portefeuille.
-    risk_free_rate : float
-        Taux sans risque utilisé pour certaines métriques.
+    risk_free_rate : float — annuel
+    annualization_factor : int
 
     Retour
     ------
-    results : dict
-        Dictionnaire contenant par exemple :
-        - portfolio_returns
-        - portfolio_value
-        - cumulative_return
-        - volatility
-        - sharpe_ratio
-        - max_drawdown
-
-    Ce qu’il faut faire
-    -------------------
-    1. Calculer les rendements du portefeuille
-    2. Calculer la valeur cumulée
-    3. Calculer les métriques de performance
-    4. Retourner les résultats dans une structure simple
+    dict avec portfolio_returns, portfolio_value, et toutes les métriques.
     """
     if not isinstance(returns_matrix, pd.DataFrame):
         returns_matrix = pd.DataFrame(returns_matrix)
 
-    weights = np.array(weights, dtype=float)
+    w = np.asarray(weights, dtype=float)
 
-    if returns_matrix.shape[1] != len(weights):
-        raise ValueError(
-            f"returns_matrix a {returns_matrix.shape[1]} colonnes "
-            f"mais weights a {len(weights)} éléments."
-        )
+    rf_daily       = (risk_free_rate / annualization_factor) * w_rf
+    port_returns   = compute_portfolio_returns(returns_matrix, w) + rf_daily
+    port_value     = compute_portfolio_value(port_returns, initial_value)
 
-    # Rendement journalier de l'actif sans risque
-    rf_daily = (risk_free_rate / annualization_factor) * w_rf
+    cum_return     = compute_cumulative_return(port_value)
+    ann_return     = compute_annualized_return(port_value, annualization_factor)
+    volatility     = compute_backtest_volatility(port_returns, annualization_factor)
+    sharpe         = compute_sharpe_ratio(port_returns, risk_free_rate, annualization_factor)
+    max_dd         = compute_max_drawdown(port_value)
 
-    # Rendement du portefeuille : actifs risqués + actif sans risque
-    portfolio_returns = compute_portfolio_returns(returns_matrix, weights) + rf_daily
-    portfolio_value      = compute_portfolio_value(portfolio_returns, initial_value)
-
-    cumulative_return    = compute_cumulative_return(portfolio_value)
-    volatility           = compute_backtest_volatility(portfolio_returns, annualization_factor)
-    sharpe_ratio         = compute_sharpe_ratio(portfolio_returns, risk_free_rate, annualization_factor)
-    max_drawdown         = compute_max_drawdown(portfolio_value)
-
-    # Volatilité théorique (sur les actifs risqués seulement, sans risque n'y contribue pas)
+    # Volatilité théorique ex-ante (sur les actifs risqués)
     try:
-        cov = estimate_covariance_matrix(returns_matrix)
-        theoretical_vol = portfolio_volatility(weights, cov) * np.sqrt(annualization_factor)
+        Sigma        = estimate_covariance_matrix(returns_matrix)
+        theor_vol    = portfolio_volatility(w, Sigma) * np.sqrt(annualization_factor)
     except Exception:
-        theoretical_vol = None
+        theor_vol    = None
 
-    results = {
-        "portfolio_returns":      portfolio_returns,
-        "portfolio_value":        portfolio_value,
-        "cumulative_return":      cumulative_return,
+    return {
+        "portfolio_returns":      port_returns,
+        "portfolio_value":        port_value,
+        "cumulative_return":      cum_return,
+        "annualized_return":      ann_return,
         "volatility":             volatility,
-        "theoretical_volatility": theoretical_vol,
-        "sharpe_ratio":           sharpe_ratio,
-        "max_drawdown":           max_drawdown,
+        "theoretical_volatility": theor_vol,
+        "sharpe_ratio":           sharpe,
+        "max_drawdown":           max_dd,
         "w_rf":                   w_rf,
     }
 
-    return results
 
 # ============================================================
-# 8. BACKTEST D’UNE STRATEGIE A POIDS DYNAMIQUES
+# 9. BACKTEST STRATÉGIE DYNAMIQUE
 # ============================================================
 
-def run_dynamic_backtest(returns_matrix, weights_over_time, initial_value=1.0, risk_free_rate=0.0, annualization_factor=252):
+def run_dynamic_backtest(
+    returns_matrix: pd.DataFrame | np.ndarray,
+    weights_over_time: pd.DataFrame | np.ndarray,
+    initial_value: float = 1.0,
+    risk_free_rate: float = 0.0,
+    annualization_factor: int = 252
+) -> dict:
     """
-    Exécuter le backtest d’une stratégie à poids variables dans le temps.
+    Backtester une stratégie à poids variables dans le temps.
+
+    Attention au biais look-ahead : les poids de la date t doivent
+    avoir été calculés sans utiliser le rendement r_t.
+    Ce décalage doit être effectué en amont (ml_signals.align_weights_with_returns).
 
     Paramètres
     ----------
-    returns_matrix : DataFrame or array-like
-        Rendements des actifs.
-    weights_over_time : DataFrame or array-like
-        Poids du portefeuille à chaque date.
+    returns_matrix : (T, n) — rendements réalisés
+    weights_over_time : (T, n) — poids pour chaque date
     initial_value : float
-        Valeur initiale du portefeuille.
-    risk_free_rate : float
-        Taux sans risque.
+    risk_free_rate : float — annuel
+    annualization_factor : int
 
     Retour
     ------
-    results : dict
-        Structure contenant les performances observées.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Associer à chaque date le vecteur de poids correspondant
-    2. Calculer les rendements du portefeuille date par date
-    3. Construire la valeur cumulée
-    4. Calculer les métriques finales
-
-    Utilité
-    -------
-    Cette fonction est utile si vous utilisez des poids optimisés
-    ou des signaux dynamiques.
+    dict avec toutes les métriques.
     """
     if not isinstance(returns_matrix, pd.DataFrame):
         returns_matrix = pd.DataFrame(returns_matrix)
-
     if not isinstance(weights_over_time, pd.DataFrame):
         weights_over_time = pd.DataFrame(
             weights_over_time,
             index=returns_matrix.index,
-            columns=returns_matrix.columns)
+            columns=returns_matrix.columns
+        )
 
-    common_index = returns_matrix.index.intersection(weights_over_time.index)
-    returns_matrix = returns_matrix.loc[common_index]
-    weights_over_time = weights_over_time.loc[common_index]
+    # Alignement sur l'index commun
+    idx               = returns_matrix.index.intersection(weights_over_time.index)
+    returns_matrix    = returns_matrix.loc[idx]
+    weights_over_time = weights_over_time.loc[idx]
 
     if returns_matrix.shape[1] != weights_over_time.shape[1]:
-        raise ValueError("The number of columns in returns_matrix must match the number of columns in weights_over_time.")
-    
-    portfolio_returns = pd.Series(
-    (returns_matrix * weights_over_time).sum(axis=1),
-    index=returns_matrix.index,
-    name="Portfolio Returns"
+        raise ValueError("returns_matrix et weights_over_time n'ont pas le même nombre d'actifs.")
+
+    port_returns = pd.Series(
+        (returns_matrix.values * weights_over_time.values).sum(axis=1),
+        index=idx,
+        name="portfolio_returns"
     )
 
-    portfolio_value = compute_portfolio_value(portfolio_returns, initial_value)
+    port_value   = compute_portfolio_value(port_returns, initial_value)
+    cum_return   = compute_cumulative_return(port_value)
+    ann_return   = compute_annualized_return(port_value, annualization_factor)
+    volatility   = compute_backtest_volatility(port_returns, annualization_factor)
+    sharpe       = compute_sharpe_ratio(port_returns, risk_free_rate, annualization_factor)
+    max_dd       = compute_max_drawdown(port_value)
 
-    cumulative_return = compute_cumulative_return(portfolio_value)
-    volatility = compute_backtest_volatility(portfolio_returns)
-    sharpe_ratio = compute_sharpe_ratio(portfolio_returns, risk_free_rate, annualization_factor)
-    max_drawdown = compute_max_drawdown(portfolio_value)
-
-    results = {
-        "portfolio_returns": portfolio_returns,
-        "portfolio_value": portfolio_value,
-        "cumulative_return": cumulative_return,
-        "volatility": volatility,
-        "sharpe_ratio": sharpe_ratio,
-        "max_drawdown": max_drawdown
+    return {
+        "portfolio_returns": port_returns,
+        "portfolio_value":   port_value,
+        "cumulative_return": cum_return,
+        "annualized_return": ann_return,
+        "volatility":        volatility,
+        "sharpe_ratio":      sharpe,
+        "max_drawdown":      max_dd,
     }
 
-    return results
-
 
 # ============================================================
-# 9. PORTEFEUILLE EQUIPONDERE (BASELINE)
+# 10. STRATÉGIE ÉQUIPONDÉRÉE (BASELINE)
 # ============================================================
 
-def equal_weight_strategy(n_assets):
+def equal_weight_strategy(n_assets: int) -> np.ndarray:
     """
-    Construire un portefeuille équipondéré.
+    Construire le portefeuille équipondéré : w_i = 1/n.
 
-    Paramètres
-    ----------
-    n_assets : int
-        Nombre d’actifs.
-
-    Retour
-    ------
-    weights : array-like
-        Vecteur de poids égaux.
-
-    Formule
-    -------
-    Chaque poids vaut 1 / n_assets.
-
-    Utilité
-    -------
-    Sert de stratégie de référence simple pour comparaison.
+    Il minimise la variance dans le cas isotrope (Σ = σ²I)
+    et sert de baseline universelle.
     """
     if n_assets <= 0:
-        raise ValueError("n_assets doit être un entier positif.")
-    
-    weights = np.ones(n_assets) / n_assets
-
-    return weights
+        raise ValueError("n_assets doit être un entier strictement positif.")
+    return np.ones(n_assets) / n_assets
 
 
 # ============================================================
-# 10. COMPARAISON DE STRATEGIES
+# 11. COMPARAISON DE STRATÉGIES
 # ============================================================
 
-def compare_strategies(strategy_results):
+def compare_strategies(strategy_results: dict) -> pd.DataFrame:
     """
-    Comparer plusieurs stratégies de portefeuille.
+    Construire un tableau comparatif des métriques principales.
 
     Paramètres
     ----------
-    strategy_results : dict
-        Dictionnaire contenant les résultats de plusieurs stratégies.
+    strategy_results : dict[str, dict]
+        Clé = nom de la stratégie, valeur = résultats de backtest.
 
     Retour
     ------
-    comparison_table : DataFrame or dict
-        Tableau comparatif des métriques principales.
-
-    Ce qu’il faut comparer
-    ----------------------
-    - rendement cumulé
-    - volatilité
-    - ratio de Sharpe
-    - drawdown maximal
-
-    Utilité
-    -------
-    Cette fonction permet de résumer clairement les différences
-    entre les stratégies testées.
+    comparison : DataFrame, lignes = stratégies, colonnes = métriques.
     """
-    comparison = {}
-
-    for strategy_name, results in strategy_results.items():
-        comparison[strategy_name] = {
-            "cumulative_return": results["cumulative_return"],
-            "volatility": results["volatility"],
-            "theoretical_volatility": results.get("theoretical_volatility", None),
-            "sharpe_ratio": results["sharpe_ratio"],
-            "max_drawdown": results["max_drawdown"]
+    rows = {}
+    for name, res in strategy_results.items():
+        rows[name] = {
+            "cumulative_return":      res.get("cumulative_return"),
+            "annualized_return":      res.get("annualized_return"),
+            "volatility":             res.get("volatility"),
+            "theoretical_volatility": res.get("theoretical_volatility"),
+            "sharpe_ratio":           res.get("sharpe_ratio"),
+            "max_drawdown":           res.get("max_drawdown"),
         }
-    
-    comparison_table = pd.DataFrame(comparison).T
-
-    return comparison_table
+    return pd.DataFrame(rows).T
 
 
 # ============================================================
-# 11. PIPELINE COMPLET DE BACKTEST
+# 12. PIPELINE COMPLET
 # ============================================================
 
 def run_portfolio_backtest(
-    returns_matrix,
-    optimized_weights=None,
-    w_rf = 0.0, 
-    dynamic_weights=None,
-    initial_value=1.0,
-    risk_free_rate=0.0,
-    annualization_factor=252
-):
+    returns_matrix: pd.DataFrame | np.ndarray,
+    optimized_weights: np.ndarray | None = None,
+    w_rf: float = 0.0,
+    dynamic_weights: pd.DataFrame | np.ndarray | None = None,
+    initial_value: float = 1.0,
+    risk_free_rate: float = 0.0,
+    annualization_factor: int = 252
+) -> dict:
     """
-    Lancer un backtest complet et comparer plusieurs stratégies.
+    Pipeline complet : backtest de toutes les stratégies disponibles
+    et tableau de comparaison.
+
+    Stratégies incluses
+    -------------------
+    1. equal_weight  : poids égaux  (toujours inclus, sert de baseline)
+    2. optimized     : poids issus de run_sgd (si fournis)
+    3. dynamic       : poids dynamiques issus de ml_signals (si fournis)
 
     Paramètres
     ----------
-    returns_matrix : DataFrame or array-like
-        Rendements des actifs.
-    optimized_weights : array-like or None
-        Poids optimisés obtenus par exemple avec sgd_optimizer.py
-    dynamic_weights : DataFrame or array-like or None
-        Poids variables dans le temps.
+    returns_matrix : (T, n)
+    optimized_weights : (n,) or None
+    w_rf : float — part de l'actif sans risque dans la stratégie optimisée
+    dynamic_weights : (T, n) or None
     initial_value : float
-        Valeur initiale du portefeuille.
-    risk_free_rate : float
-        Taux sans risque.
+    risk_free_rate : float — annuel
     annualization_factor : int
-        Facteur d'annualisation.
-    w_rf : float
-        Poids de l'actif sans risque dans le portefeuille.
+
     Retour
     ------
-    backtest_results : dict
-        Dictionnaire global contenant :
-        - résultats de la stratégie équipondérée
-        - résultats de la stratégie optimisée
-        - résultats éventuels de la stratégie dynamique
-        - tableau de comparaison
-
-    Ce qu’il faut faire
-    -------------------
-    1. Construire la stratégie baseline équipondérée
-    2. Exécuter son backtest
-    3. Si des poids optimisés sont fournis, exécuter leur backtest
-    4. Si des poids dynamiques sont fournis, exécuter leur backtest
-    5. Comparer toutes les stratégies
-    6. Retourner les résultats complets
-
-    Objectif
-    --------
-    Fournir une interface unique pour l’évaluation des stratégies.
+    dict avec :
+      "strategy_results" : dict[str, dict]  — résultats par stratégie
+      "comparison"       : DataFrame        — tableau comparatif
     """
-
     if not isinstance(returns_matrix, pd.DataFrame):
         returns_matrix = pd.DataFrame(returns_matrix)
 
-    n_assets = returns_matrix.shape[1]
-
+    n_assets         = returns_matrix.shape[1]
     strategy_results = {}
 
-    # 1. Stratégie équipondérée
-    equal_weights = equal_weight_strategy(n_assets)
-
-    results_equal = run_static_backtest(
+    # 1. Baseline équipondérée
+    strategy_results["equal_weight"] = run_static_backtest(
         returns_matrix=returns_matrix,
-        weights=equal_weights,
+        weights=equal_weight_strategy(n_assets),
         initial_value=initial_value,
         risk_free_rate=risk_free_rate,
         annualization_factor=annualization_factor
     )
 
-    strategy_results["equal_weight"] = results_equal
-
-    # 2. Stratégie optimisée statique
+    # 2. Stratégie optimisée (poids fixes issus du SGD)
     if optimized_weights is not None:
-        results_optimized = run_static_backtest(
+        strategy_results["optimized"] = run_static_backtest(
             returns_matrix=returns_matrix,
-            weights=optimized_weights,
+            weights=np.asarray(optimized_weights, dtype=float),
             w_rf=w_rf,
             initial_value=initial_value,
             risk_free_rate=risk_free_rate,
             annualization_factor=annualization_factor
         )
 
-        strategy_results["optimized"] = results_optimized
-
-    # 3. Stratégie dynamique
+    # 3. Stratégie dynamique (poids variables issus de ml_signals)
     if dynamic_weights is not None:
-        results_dynamic = run_dynamic_backtest(
+        strategy_results["dynamic"] = run_dynamic_backtest(
             returns_matrix=returns_matrix,
             weights_over_time=dynamic_weights,
             initial_value=initial_value,
@@ -624,45 +518,7 @@ def run_portfolio_backtest(
             annualization_factor=annualization_factor
         )
 
-        strategy_results["dynamic"] = results_dynamic
-
-    # 4. Tableau comparatif
-    comparison = compare_strategies(strategy_results)
-
-    backtest_results = {
+    return {
         "strategy_results": strategy_results,
-        "comparison": comparison
+        "comparison":       compare_strategies(strategy_results),
     }
-
-    return backtest_results
-
-# ============================================================
-# 12. NOTES D’UTILISATION
-# ============================================================
-
-"""
-Utilisation typique
--------------------
-1. Récupérer les rendements de plusieurs actifs
-2. Construire un portefeuille de référence équipondéré
-3. Construire un portefeuille optimisé via sgd_optimizer.py
-4. Backtester les deux stratégies
-5. Comparer leurs performances
-
-Exemple logique
----------------
-returns_matrix -> weights -> portfolio_returns -> portfolio_value -> performance metrics
-
-Remarque importante
--------------------
-Ce module évalue les stratégies, mais ne calcule pas lui-même
-les poids optimaux. Cette étape doit être réalisée en amont.
-
-Séparation des rôles
---------------------
-- market_data.py : fournit les données de marché
-- portfolio_math.py : définit les quantités mathématiques
-- sgd_optimizer.py : optimise les poids
-- ml_signals.py : génère éventuellement des poids dynamiques
-- portfolio_backtest.py : mesure la performance des stratégies
-"""
