@@ -36,7 +36,7 @@ L’objectif du projet est de :
 - Intégration d’un actif sans risque  
 - Approche mean–variance  
 - Implémentation d’un algorithme de type SGD  
-- Utilisation éventuelle de signaux (sentiment, ML)
+- Utilisation éventuelle de signaux
 
 ---
 
