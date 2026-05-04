@@ -1,276 +1,91 @@
-"""
-market_data.py
-
-Description
------------
-Ce module gère les données de marché nécessaires au projet.
-
-Son rôle est de :
-- télécharger les données financières depuis Yahoo Finance
-- nettoyer les données brutes
-- extraire les prix utiles
-- calculer les rendements logarithmiques
-- fournir des données prêtes à être utilisées dans :
-    - calibration.py
-    - crr.py
-    - backtester.py
-    - les notebooks d’analyse (.ipynb)
-
-Choix de conception
--------------------
-Ce module est construit avec des fonctions simples plutôt qu’avec une classe,
-car cela est plus pratique pour :
-- les tests rapides
-- l’exploration dans les notebooks
-- la réutilisation dans tout le projet
-"""
-
 import pandas as pd
 import numpy as np
 import yfinance as yf
 from datetime import datetime
 
 
-# ============================================================
-# 1. TELECHARGEMENT DES DONNEES
-# ============================================================
-
 def download_data(ticker, start_date, end_date, interval="1d"):
-
     data = yf.download(ticker, start=start_date, end=end_date, interval=interval, progress=False)
-
     if data.empty:
         print(f"Data not found for ticker: {ticker}")
         return None
-
     data.index = pd.to_datetime(data.index)
-    data = data.sort_index(ascending=True)
+    return data.sort_index(ascending=True)
 
-    return data
-
-
-# ============================================================
-# 2. NETTOYAGE DES DONNEES
-# ============================================================
 
 def clean_data(data):
-    """
-    Nettoyer les données de marché téléchargées.
+    if data is None or data.empty:
+        return None
+    clean_df = data.copy()
+    if isinstance(clean_df.columns, pd.MultiIndex):
+        clean_df.columns = clean_df.columns.get_level_values(0)
+    clean_df.index = pd.to_datetime(clean_df.index, errors="coerce")
+    clean_df = clean_df[~clean_df.index.duplicated(keep="first")]
+    clean_df = clean_df.sort_index(ascending=True)
+    clean_df = clean_df.dropna(how="any")
+    return clean_df
 
-    Paramètres
-    ----------
-    data : DataFrame
-        Données brutes téléchargées.
-
-    Retour
-    ------
-    clean_df : DataFrame
-        Données nettoyées et prêtes à être exploitées.
-
-    Ce qu’il faut faire
-    -------------------
-    1. Vérifier la présence de valeurs manquantes (NaN)
-    2. Supprimer ou corriger les lignes problématiques
-    3. Vérifier qu’il n’y a pas de doublons de dates
-    4. Vérifier l’ordre chronologique des observations
-    5. S’assurer que les colonnes utiles sont bien présentes
-
-    Remarque
-    --------
-    Le nettoyage doit rester simple et robuste.
-    L’objectif est d’obtenir une série exploitable pour les calculs de rendement
-    et de volatilité.
-    """
-    pass
-
-
-# ============================================================
-# 3. EXTRACTION DES PRIX DE CLOTURE
-# ============================================================
 
 def get_close_prices(data):
-    """
-    Extraire la série des prix de clôture.
+    if data is None or data.empty:
+        return None
+    if "Close" in data.columns:
+        return data["Close"].copy().dropna()
+    elif "Adj Close" in data.columns:
+        return data["Adj Close"].copy().dropna()
+    else:
+        raise ValueError("Colonne de prix de clôture introuvable.")
 
-    Paramètres
-    ----------
-    data : DataFrame
-        Données de marché nettoyées.
-
-    Retour
-    ------
-    close_prices : Series
-        Série temporelle des prix de clôture.
-
-    Pourquoi cette fonction
-    -----------------------
-    Les prix de clôture sont la base la plus naturelle pour :
-    - calculer les rendements
-    - estimer la volatilité
-    - construire des analyses temporelles dans les notebooks
-    """
-    pass
-
-
-# ============================================================
-# 4. CALCUL DES RENDEMENTS LOGARITHMIQUES
-# ============================================================
 
 def compute_log_returns(prices):
+    if prices is None:
+        return None
+    return np.log(prices / prices.shift(1)).dropna()
+
+
+def build_dataset(ticker, start_date, end_date, interval="1d"):
     """
-    Calculer les rendements logarithmiques à partir d’une série de prix.
+    Construit un DataFrame unique avec toutes les variables pour un actif.
 
-    Paramètres
-    ----------
-    prices : Series
-        Série des prix de clôture.
-
-    Retour
-    ------
-    log_returns : Series
-        Série des rendements logarithmiques.
-
-    Formule
-    -------
-    r_t = log(S_t / S_{t-1})
-
-    Ce qu’il faut faire
-    -------------------
-    1. Calculer le rapport entre deux prix consécutifs
-    2. Appliquer le logarithme
-    3. Supprimer la première valeur manquante générée par le décalage
-    4. Retourner une série propre
-
-    Utilité
-    -------
-    Cette série sera utilisée dans calibration.py pour estimer la volatilité.
+    Colonnes produites
+    ------------------
+    Open, High, Low, Close, Volume : données OHLCV nettoyées
+    log_return                     : rendement logarithmique journalier
+    cum_return                     : rendement cumulé (base 100)
+    rolling_vol_21                 : volatilité glissante 21 jours (annualisée)
     """
-    pass
+    raw = download_data(ticker, start_date, end_date, interval)
+    df = clean_data(raw)
+    close = get_close_prices(df)
+    log_ret = compute_log_returns(close)
+
+    # Aligner tout sur l'index des rendements (on perd la 1ère ligne, normal)
+    df = df.loc[log_ret.index].copy()
+    df["log_return"]     = log_ret
+    df["cum_return"]     = (df["log_return"].cumsum().apply(np.exp)) * 100
+    df["rolling_vol_21"] = df["log_return"].rolling(21).std() * np.sqrt(252)
+
+    df.index.name = "Date"
+    return df
 
 
 # ============================================================
-# 5. PIPELINE PRINCIPAL
+# CONSTRUCTION DES DEUX DATASETS
 # ============================================================
 
-def get_market_data(ticker, start_date, end_date, interval="1d"):
-    """
-    Exécuter le pipeline complet de préparation des données de marché.
+end_date   = datetime.now().strftime('%Y-%m-%d')
+start_date = '2000-01-01'
 
-    Paramètres
-    ----------
-    ticker : str
-        Symbole de l’actif.
-    start_date : str
-        Date de début.
-    end_date : str
-        Date de fin.
-    interval : str, optional
-        Fréquence des données.
+df_cac40 = build_dataset('^FCHI', start_date, end_date)
+df_brent  = build_dataset('BZ=F',  start_date, end_date)
 
-    Retour
-    ------
-    result : dict
-        Structure contenant par exemple :
-        - les données brutes
-        - les données nettoyées
-        - les prix de clôture
-        - les rendements log
+print("=== CAC 40 ===")
+print(df_cac40)
+print(f"Shape : {df_cac40.shape}\n")
 
-    Ce qu’il faut faire
-    -------------------
-    1. Télécharger les données
-    2. Nettoyer les données
-    3. Extraire les prix de clôture
-    4. Calculer les rendements log
-    5. Retourner les résultats dans un format simple à réutiliser
+print("=== BRENT ===")
+print(df_brent)
+print(f"Shape : {df_brent.shape}")
 
-    Pourquoi retourner un dictionnaire
-    ----------------------------------
-    Cela permet aux notebooks d’accéder facilement à chaque étape :
-    - result["raw_data"]
-    - result["clean_data"]
-    - result["close_prices"]
-    - result["log_returns"]
-    """
-    pass
-
-
-# ============================================================
-# 6. FONCTION OPTIONNELLE POUR PLUSIEURS ACTIFS
-# ============================================================
-
-def get_multiple_close_prices(tickers, start_date, end_date, interval="1d"):
-    """
-    Récupérer les prix de clôture de plusieurs actifs et aligner les dates.
-
-    Paramètres
-    ----------
-    tickers : list[str]
-        Liste des symboles des actifs.
-    start_date : str
-        Date de début.
-    end_date : str
-        Date de fin.
-    interval : str, optional
-        Fréquence des données.
-
-    Retour
-    ------
-    prices_df : DataFrame
-        Tableau dont :
-        - chaque colonne correspond à un actif
-        - chaque ligne correspond à une date alignée
-
-    Ce qu’il faut faire
-    -------------------
-    1. Télécharger les données pour chaque ticker
-    2. Nettoyer chaque série
-    3. Extraire les prix de clôture
-    4. Aligner toutes les séries sur les mêmes dates
-    5. Construire un DataFrame final
-
-    Utilité
-    -------
-    Cette fonction est utile surtout pour l’extension portefeuille.
-    """
-    pass
-
-
-# ============================================================
-# 7. NOTES D’UTILISATION
-# ============================================================
-
-"""
-Utilisation prévue dans les notebooks
--------------------------------------
-Dans les notebooks d’analyse, ce module doit permettre par exemple de :
-- visualiser l’évolution des prix
-- tracer les rendements
-- étudier la volatilité historique
-- comparer plusieurs actifs
-
-Exemple logique d’utilisation
------------------------------
-1. Télécharger les données
-2. Nettoyer les données
-3. Extraire les prix
-4. Calculer les rendements
-5. Faire les graphiques et analyses dans un fichier .ipynb
-
-Remarque importante
--------------------
-On sépare volontairement :
-- la logique de récupération / préparation dans market_data.py
-- l’analyse et la visualisation dans les notebooks
-
-Cela rend le projet plus propre, plus lisible et plus facile à partager.
-"""
-
-enddate = datetime.now().strftime('%Y-%m-%d')
-
-print(enddate)
-data_cac40 = download_data('^FCHI', '2000-01-01', enddate)
-data_brent = download_data('BZ=F', '2000-01-01', enddate)
-
-print(data_cac40)
-print(data_brent)
+df_cac40.to_csv("cac40_data.csv")
+df_brent.to_csv("brent_data.csv")
