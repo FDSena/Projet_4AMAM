@@ -7,8 +7,8 @@ Ce module est responsable de la calibration des paramètres du modèle
 de Cox-Ross-Rubinstein (CRR).
 
 À partir des données de marché, il permet de :
-- estimer la volatilité historique
 - gérer le taux sans risque
+- estimer la volatilité historique
 - calculer les paramètres du modèle binomial :
     - u : facteur de hausse
     - d : facteur de baisse
@@ -24,7 +24,7 @@ Ce module est utilisé par :
 # IMPORTS
 # ============================================================
 
-# import numpy as np
+import numpy as np
 
 
 # ============================================================
@@ -63,6 +63,9 @@ def estimate_volatility(log_returns, annualization_factor=252):
     --------
     Cette volatilité sera utilisée dans le calcul de u et d.
     """
+    return np.std(log_returns, ddof=1) * np.sqrt(annualization_factor) # ddof=1 pour l'estimation de l'écart-type à partir d'un échantillon 
+
+    
     pass
 
 
@@ -70,6 +73,7 @@ def estimate_volatility(log_returns, annualization_factor=252):
 # 2. GESTION DU TAUX SANS RISQUE
 # ============================================================
 
+DEFAULT_RISK_FREE_RATE = 0.01  # 1% par an, à ajuster selon les conditions de marché
 def get_risk_free_rate(rate=None):
     """
     Fournir le taux sans risque utilisé dans le modèle.
@@ -95,7 +99,11 @@ def get_risk_free_rate(rate=None):
     Dans une première version du projet, ce taux peut être donné
     manuellement pour simplifier la calibration.
     """
-    pass
+    r = rate if rate is not None else DEFAULT_RISK_FREE_RATE
+    if r < 0 :
+        raise ValueError("Le taux sans risque ne peut pas être négatif.")
+    return r
+    
 
 
 # ============================================================
@@ -127,7 +135,12 @@ def compute_time_step(maturity, n_steps):
     -------
     Ce paramètre intervient dans le calcul de u, d et p_star.
     """
-    pass
+    if maturity <= 0:
+        raise ValueError(f"La maturité doit être positive. Valeur fournie : {maturity}")
+    if n_steps <= 0:
+        raise ValueError(f"Nombre d'étape invalide : {n_steps}.")
+    return maturity / n_steps
+    
 
 
 # ============================================================
@@ -164,6 +177,13 @@ def compute_ud(sigma, dt):
     Dans le modèle CRR, on a aussi :
     d = 1 / u
     """
+    if sigma <= 0:
+        raise ValueError(f"Volatilité invalide : {sigma}")
+    if dt <= 0:
+        raise ValueError(f"Pas de temps invalide : {dt}")
+    u = np.exp(sigma * np.sqrt(dt))
+    d = 1/u
+    return u, d
     pass
 
 
@@ -208,6 +228,12 @@ def compute_risk_neutral_probability(r, dt, u, d):
     Cette probabilité est utilisée dans la rétropropagation
     pour calculer le prix de l’option.
     """
+    if u == d:
+        raise ValueError("u et d sont égaux, dénominateur nul")
+    p_star = (np.exp(r * dt) - d) / (u - d)
+    if not (0 <= p_star <= 1):
+        raise ValueError(f"Probabilité risque-neutre invalide : {p_star}. Doit être entre 0 et 1.")
+    return p_star
     pass
 
 
@@ -262,6 +288,19 @@ def calibrate_crr_parameters(log_returns, maturity, n_steps, risk_free_rate=None
     - params["d"]
     - params["p_star"]
     """
+    sigma = estimate_volatility(log_returns)
+    r = get_risk_free_rate(risk_free_rate)
+    dt = compute_time_step(maturity, n_steps)
+    u, d = compute_ud(sigma, dt)
+    p_star = compute_risk_neutral_probability(r, dt, u, d)
+    return {
+        "sigma": sigma,
+        "r": r,
+        "dt": dt,
+        "u": u,
+        "d": d,
+        "p_star": p_star
+    }
     pass
 
 
@@ -291,6 +330,17 @@ def volatility_confidence_interval(log_returns, confidence_level=0.95):
     Elle peut être utile pour enrichir l’analyse dans le rapport,
     mais elle n’est pas indispensable à la première version du projet.
     """
+    from scipy import stats
+    n = len(log_returns)
+    sigma = estimate_volatility(log_returns, annualization_factor=1)  # Volatilité non annualisée pour l'intervalle
+    alpha = 1 - confidence_level
+    chi2_low = stats.chi2.ppf((1 - alpha) / 2, df=n-1)
+    chi2_high = stats.chi2.ppf(1 - (1 - alpha) / 2, df=n-1)
+    # intervalle sur la variance, puis on repasse sur la volatilité annualisée
+    var = np.var(log_returns, ddof=1)
+    lower_bound = np.sqrt((n - 1) * var / chi2_high) * np.sqrt(252)  # Annualisation
+    upper_bound = np.sqrt((n - 1) * var / chi2_low) * np.sqrt(252)   # Annualisation
+    return lower_bound, upper_bound
     pass
 
 
