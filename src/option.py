@@ -1,11 +1,4 @@
-"""
-option.py
-"""
-
 class Option:
-    """
-    Classe représentant une option financière.
-    """
 
     def __init__(self, strike, maturity, option_type):
         if option_type not in ('call', 'put'):

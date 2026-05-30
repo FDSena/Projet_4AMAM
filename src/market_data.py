@@ -68,11 +68,6 @@ def build_dataset(ticker, start_date, end_date, interval="1d"):
     df.index.name = "Date"
     return df
 
-
-# ============================================================
-# CONSTRUCTION DES DEUX DATASETS
-# ============================================================
-
 end_date   = datetime.now().strftime('%Y-%m-%d')
 start_date = '2000-01-01'
 
