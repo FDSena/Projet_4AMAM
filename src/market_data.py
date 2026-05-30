@@ -68,19 +68,12 @@ def build_dataset(ticker, start_date, end_date, interval="1d"):
     df.index.name = "Date"
     return df
 
-end_date   = datetime.now().strftime('%Y-%m-%d')
-start_date = '2000-01-01'
+def get_S0_and_log_returns(df):
+    """
+    Extrait S0 (dernier prix de clôture) et les log-returns depuis un dataset.
+    C'est la fonction que crr.py et calibration.py vont utiliser.
+    """
+    S0 = df["Close"].iloc[-1]
+    log_returns = df["log_return"].dropna()
+    return S0, log_returns
 
-df_cac40 = build_dataset('^FCHI', start_date, end_date)
-df_brent  = build_dataset('BZ=F',  start_date, end_date)
-
-print("=== CAC 40 ===")
-print(df_cac40)
-print(f"Shape : {df_cac40.shape}\n")
-
-print("=== BRENT ===")
-print(df_brent)
-print(f"Shape : {df_brent.shape}")
-
-df_cac40.to_csv("cac40_data.csv")
-df_brent.to_csv("brent_data.csv")
