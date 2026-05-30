@@ -22,8 +22,8 @@ Ce module est utilisé principalement dans :
 # IMPORTS
 # ============================================================
 
-# import numpy as np
-# import pandas as pd
+import numpy as np
+import pandas as pd
 
 
 # ============================================================
@@ -62,6 +62,16 @@ def compare_prices(predicted_prices, observed_prices):
     Permettre une lecture simple des résultats avant même de calculer
     des métriques globales.
     """
+    predicted = np.array(predicted_prices)
+    observed = np.array(observed_prices)
+    if len(predicted) != len(observed):
+        raise ValueError(f"Tailles incompatibles entre prix prédits {len(predicted)} et prix observés {len(observed)}.")
+    return pd.DataFrame({
+        'predicted_price': predicted,
+        'observed_price': observed,
+        'absolute_error': np.abs(predicted - observed),
+        'relative_error': np.abs(predicted - observed) / np.where(observed != 0, observed, 1)  # éviter division par zéro
+    })
     pass
 
 
@@ -94,6 +104,11 @@ def compute_absolute_errors(predicted_prices, observed_prices):
     -------
     Base pour les métriques comme la MAE.
     """
+    predicted = np.array(predicted_prices)
+    observed = np.array(observed_prices)
+    if len(predicted) != len(observed):
+        raise ValueError(f"Tailles incompatibles entre prix prédits {len(predicted)} et prix observés {len(observed)}.")
+    return np.abs(predicted - observed)
     pass
 
 
@@ -122,6 +137,7 @@ def compute_mae(predicted_prices, observed_prices):
     -------
     Fournit une mesure simple de l’écart moyen entre modèle et référence.
     """
+    return np.mean(compute_absolute_errors(predicted_prices, observed_prices))
     pass
 
 
@@ -150,6 +166,8 @@ def compute_rmse(predicted_prices, observed_prices):
     -------
     Cette métrique pénalise davantage les grosses erreurs.
     """
+    error = compute_absolute_errors(predicted_prices, observed_prices)
+    return np.sqrt(np.mean(error ** 2))
     pass
 
 
@@ -157,12 +175,15 @@ def compute_rmse(predicted_prices, observed_prices):
 # 5. BACKTEST SUR PLUSIEURS DATES
 # ============================================================
 
-def run_backtest(data, option, pricing_function, calibration_function, n_steps, risk_free_rate=None):
+def run_backtest(data, option, pricing_function, calibration_function, n_steps, risk_free_rate=None, window=252):
     """
     Exécuter un backtest du modèle sur plusieurs dates.
 
     Paramètres
     ----------
+    window : int
+        Nombre de jours historiques utilisés pour calibrer la volatilité à chaque date.
+
     data : structure de données
         Données de marché nécessaires au backtest.
         Cela peut contenir :
@@ -211,6 +232,45 @@ def run_backtest(data, option, pricing_function, calibration_function, n_steps, 
     Le mot “backtest” signifie ici qu’on répète l’évaluation du modèle
     sur plusieurs dates pour voir s’il reste cohérent dans le temps.
     """
+
+    
+    data = data.copy()
+    data.index = pd.to_datetime(data.index)  if not isinstance(data.index, pd.DatetimeIndex) else data.index
+    data = data.sort_index()
+
+    results = []
+    
+    for i in range(window, len(data)):
+        date = data.index[i]
+        S = data["Close"].iloc[i]
+
+        # fenetre glissante pour la calibration
+        log_returns_window = data["log_return"].iloc[i - window:i].dropna()
+
+        try :
+            params = calibration_function(
+                log_returns_window,
+                maturity=option.maturity,
+                n_steps=n_steps,
+                risk_free_rate=risk_free_rate)
+            price = pricing_function(S, option = option, params = params)
+        except Exception as e:
+            price = np.nan
+            params = {}
+        
+        results.append({
+            "date": date,
+            "S":S,
+            "prix_prédit": price,
+            "sigma" : params.get("sigma"),
+            "r" : params.get("r"),
+            "dt" : params.get("dt"),
+            "u" : params.get("u"),
+            "d" : params.get("d"),
+            "p_star" : params.get("p_star")
+        })
+    
+    return pd.DataFrame(results)
     pass
 
 
@@ -243,6 +303,31 @@ def summarize_backtest_results(results):
     2. Calculer les métriques globales
     3. Retourner un résumé simple à afficher dans les notebooks
     """
+    predicted = results["prix_prédit"].dropna()
+
+    if "prix_observé" not in results.columns:
+        return {
+            "n_observations": len(predicted),
+            "prix_moyen_predit": predicted.mean(),
+            "prix_min_predit": predicted.min(),
+            "prix_max_predit": predicted.max(),
+            "sigma_moyen": results["sigma"].mean(),
+            "p_star_moyen": results["p_star"].mean(),
+            "n_nan": results["prix_predit"].isna().sum(),
+        }
+    observed = results["prix_observé"].dropna()
+    mae = compute_mae(predicted, observed)
+    rmse = compute_rmse(predicted, observed)
+    errors = predicted.values - observed.values
+
+    return {
+        "n_observations": len(predicted),
+        "MAE": mae,
+        "RMSE": rmse,
+        "erreur_moyenne": np.mean(errors),
+        "erreur_max": np.max(np.abs(errors)),
+        "n_nan": results["prix_prédit"].isna().sum()
+    }
     pass
 
 
@@ -278,6 +363,37 @@ def analyze_stability(results):
     Ne pas se limiter à une métrique globale,
     mais comprendre comment le modèle se comporte au fil du temps.
     """
+    df = results.copy()
+
+    # Evolution de la volatilité calibrée
+    sigma_evolution = {
+        "sigma_moyen": df["sigma"].mean(),
+        "sigma_min": df["sigma"].min(),
+        "sigma_max": df["sigma"].max(),
+        "sigma_std": df["sigma"].std()
+    }
+
+    # Evolution de p_star
+    p_star_stats = {
+        "p_star_moyen": df["p_star"].mean(),
+        "p_star_std": df["p_star"].std()
+    }
+
+    # Rolling stats sur le prix prédit (fenêtre 21 jours)
+    df["rolling_mean_prix"] = df["prix_prédit"].rolling(21).mean()
+    df["rolling_std_prix"] = df["prix_prédit"].rolling(21).std()
+
+    #  Si erreurs, il faut aussi les analyser
+    if "erreur_absolue" in df.columns:
+        df["rolling_mae"] = df["erreur_absolue"].rolling(21).mean()
+        high_error_threshold = df["erreur_absolue"].quantile(0.9)
+        df["high_error_period"] = df["erreur_absolue"] > high_error_threshold
+
+    return {
+        "sigma_stats": sigma_evolution,
+        "p_star_stats": p_star_stats,
+        "serie_temporelle": df, # exploitable directement dans les notebooks pour faire des graphiques
+    }
     pass
 
 
@@ -310,6 +426,21 @@ def build_reference_prices(option_market_data=None, fallback_method=None):
     Dans ce cas, il faudra bien expliquer dans le rapport
     ce qui est utilisé comme référence.
     """
+    if option_market_data is not None:
+        if isinstance(option_market_data, pd.DataFrame):
+            if "Close" in option_market_data.columns:
+                return option_market_data["Close"].values
+            raise ValueError("Colonne 'Close' introuvable dans option_market_data")
+        return np.array(option_market_data)
+
+    if fallback_method is not None:
+        return fallback_method()
+
+    raise ValueError(
+        "Aucune donnée de marché ni méthode de fallback fournie. "
+        "Dans un contexte étudiant, tu peux utiliser Black-Scholes comme référence : "
+        "fallback_method=lambda: black_scholes_prices(...)"
+    )
     pass
 
 
