@@ -1,4 +1,4 @@
-from ext.pgd_optimizer import (
+from ext.sgd_optimizer import (
     initialize_weights,
     approximate_gradient,
     sgd_update,
