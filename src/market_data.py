@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from datetime import datetime
 
 
 def download_data(ticker, start_date, end_date, interval="1d"):
@@ -51,18 +50,24 @@ def build_dataset(ticker, start_date, end_date, interval="1d"):
     ------------------
     Open, High, Low, Close, Volume : données OHLCV nettoyées
     log_return                     : rendement logarithmique journalier
-    cum_return                     : rendement cumulé (base 100)
-    rolling_vol_21                 : volatilité glissante 21 jours (annualisée)
+    cum_return                     : rendement cumulé base 100
+    rolling_vol_21                 : volatilité glissante 21 jours annualisée
     """
     raw = download_data(ticker, start_date, end_date, interval)
     df = clean_data(raw)
+
+    if df is None or df.empty:
+        raise ValueError(f"Aucune donnée exploitable pour le ticker {ticker}.")
+
     close = get_close_prices(df)
     log_ret = compute_log_returns(close)
 
-    # Aligner tout sur l'index des rendements (on perd la 1ère ligne, normal)
+    if log_ret is None or log_ret.empty:
+        raise ValueError(f"Impossible de calculer les rendements logarithmiques pour {ticker}.")
+
     df = df.loc[log_ret.index].copy()
-    df["log_return"]     = log_ret
-    df["cum_return"]     = (df["log_return"].cumsum().apply(np.exp)) * 100
+    df["log_return"] = log_ret
+    df["cum_return"] = np.exp(df["log_return"].cumsum()) * 100
     df["rolling_vol_21"] = df["log_return"].rolling(21).std() * np.sqrt(252)
 
     df.index.name = "Date"

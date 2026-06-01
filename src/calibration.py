@@ -66,7 +66,7 @@ def estimate_volatility(log_returns, annualization_factor=252):
     return np.std(log_returns, ddof=1) * np.sqrt(annualization_factor) # ddof=1 pour l'estimation de l'écart-type à partir d'un échantillon 
 
     
-    pass
+
 
 
 # ============================================================
@@ -184,7 +184,7 @@ def compute_ud(sigma, dt):
     u = np.exp(sigma * np.sqrt(dt))
     d = 1/u
     return u, d
-    pass
+
 
 
 # ============================================================
@@ -234,7 +234,7 @@ def compute_risk_neutral_probability(r, dt, u, d):
     if not (0 <= p_star <= 1):
         raise ValueError(f"Probabilité risque-neutre invalide : {p_star}. Doit être entre 0 et 1.")
     return p_star
-    pass
+
 
 
 # ============================================================
@@ -301,7 +301,7 @@ def calibrate_crr_parameters(log_returns, maturity, n_steps, risk_free_rate=None
         "d": d,
         "p_star": p_star
     }
-    pass
+
 
 
 # ============================================================
@@ -332,16 +332,17 @@ def volatility_confidence_interval(log_returns, confidence_level=0.95):
     """
     from scipy import stats
     n = len(log_returns)
-    sigma = estimate_volatility(log_returns, annualization_factor=1)  # Volatilité non annualisée pour l'intervalle
+    if n < 2:
+        raise ValueError("Il faut au moins deux rendements pour estimer la volatilité.")
     alpha = 1 - confidence_level
-    chi2_low = stats.chi2.ppf((1 - alpha) / 2, df=n-1)
-    chi2_high = stats.chi2.ppf(1 - (1 - alpha) / 2, df=n-1)
+    chi2_low = stats.chi2.ppf(alpha / 2, df=n-1)
+    chi2_high = stats.chi2.ppf(1 - alpha / 2, df=n-1)
     # intervalle sur la variance, puis on repasse sur la volatilité annualisée
     var = np.var(log_returns, ddof=1)
-    lower_bound = np.sqrt((n - 1) * var / chi2_high) * np.sqrt(252)  # Annualisation
-    upper_bound = np.sqrt((n - 1) * var / chi2_low) * np.sqrt(252)   # Annualisation
+    lower_bound = np.sqrt((n - 1) * var / chi2_high) * np.sqrt(252)
+    upper_bound = np.sqrt((n - 1) * var / chi2_low) * np.sqrt(252)    
     return lower_bound, upper_bound
-    pass
+
 
 
 # ============================================================

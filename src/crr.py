@@ -1,5 +1,4 @@
 import numpy as np
-from option import Option
 
 
 def build_price_tree(S0, u, d, n_steps):
@@ -57,6 +56,15 @@ def backward_induction_american(price_tree, option, r, dt, p_star):
 # 5. FONCTION PRINCIPALE DE PRICING
 
 def crr_price(S0, option, u, d, r, dt, p_star, american=False):
+    if S0 <= 0:
+        raise ValueError("Le prix initial S0 doit être positif.")
+    if dt <= 0:
+        raise ValueError("Le pas de temps dt doit être positif.")
+    if u <= d:
+        raise ValueError("On doit avoir u > d dans le modèle CRR.")
+    if not (0 <= p_star <= 1):
+        raise ValueError("La probabilité risque-neutre p_star doit être entre 0 et 1.")
+
     n_steps = round(option.maturity / dt)
     price_tree = build_price_tree(S0, u, d, n_steps)
 
@@ -64,7 +72,6 @@ def crr_price(S0, option, u, d, r, dt, p_star, american=False):
         return backward_induction_american(price_tree, option, r, dt, p_star)
     else:
         return backward_induction(price_tree, option, r, dt, p_star)
-
 
 # 6. EXTRACTION DES NIVEAUX D'UN ARBRE
 

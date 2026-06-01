@@ -2,7 +2,14 @@ class Option:
 
     def __init__(self, strike, maturity, option_type):
         if option_type not in ('call', 'put'):
+         raise ValueError(f"option_type doit être 'call' ou 'put', reçu : '{option_type}'")
+        if strike <= 0:
+           raise ValueError("Le strike doit être positif.")
+        if maturity <= 0:
+            raise ValueError("La maturité doit être positive.")
+        if option_type not in ("call", "put"):
             raise ValueError(f"option_type doit être 'call' ou 'put', reçu : '{option_type}'")
+
         self.strike = strike
         self.maturity = maturity
         self.option_type = option_type

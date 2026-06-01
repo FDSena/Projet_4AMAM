@@ -253,7 +253,16 @@ def run_backtest(data, option, pricing_function, calibration_function, n_steps, 
                 maturity=option.maturity,
                 n_steps=n_steps,
                 risk_free_rate=risk_free_rate)
-            price = pricing_function(S, option = option, params = params)
+            price, _ = pricing_function(
+                S0=S,
+                option=option,
+                u=params["u"],
+                d=params["d"],
+                r=params["r"],
+                dt=params["dt"],
+                p_star=params["p_star"],
+                american=False
+            )
         except Exception as e:
             price = np.nan
             params = {}
@@ -313,7 +322,7 @@ def summarize_backtest_results(results):
             "prix_max_predit": predicted.max(),
             "sigma_moyen": results["sigma"].mean(),
             "p_star_moyen": results["p_star"].mean(),
-            "n_nan": results["prix_predit"].isna().sum(),
+            "n_nan": results["prix_prédit"].isna().sum(),
         }
     observed = results["prix_observé"].dropna()
     mae = compute_mae(predicted, observed)
