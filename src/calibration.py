@@ -73,7 +73,7 @@ def estimate_volatility(log_returns, annualization_factor=252):
 # 2. GESTION DU TAUX SANS RISQUE
 # ============================================================
 
-DEFAULT_RISK_FREE_RATE = 0.01  # 1% par an, à ajuster selon les conditions de marché
+DEFAULT_RISK_FREE_RATE = 0.02  # 2% par an, à ajuster selon les conditions de marché
 def get_risk_free_rate(rate=None):
     """
     Fournir le taux sans risque utilisé dans le modèle.

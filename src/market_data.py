@@ -68,6 +68,7 @@ def build_dataset(ticker, start_date, end_date, interval="1d"):
     df = df.loc[log_ret.index].copy()
     df["log_return"] = log_ret
     df["cum_return"] = np.exp(df["log_return"].cumsum()) * 100
+    # 252 jours de trading par an, donc on annualise la volatilité glissante de 21 jours
     df["rolling_vol_21"] = df["log_return"].rolling(21).std() * np.sqrt(252)
 
     df.index.name = "Date"
