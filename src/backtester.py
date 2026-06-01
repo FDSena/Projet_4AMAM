@@ -72,7 +72,7 @@ def compare_prices(predicted_prices, observed_prices):
         'absolute_error': np.abs(predicted - observed),
         'relative_error': np.abs(predicted - observed) / np.where(observed != 0, observed, 1)  # éviter division par zéro
     })
-    pass
+    
 
 
 # ============================================================
@@ -109,7 +109,7 @@ def compute_absolute_errors(predicted_prices, observed_prices):
     if len(predicted) != len(observed):
         raise ValueError(f"Tailles incompatibles entre prix prédits {len(predicted)} et prix observés {len(observed)}.")
     return np.abs(predicted - observed)
-    pass
+    
 
 
 # ============================================================
@@ -138,7 +138,7 @@ def compute_mae(predicted_prices, observed_prices):
     Fournit une mesure simple de l’écart moyen entre modèle et référence.
     """
     return np.mean(compute_absolute_errors(predicted_prices, observed_prices))
-    pass
+    
 
 
 # ============================================================
@@ -168,7 +168,7 @@ def compute_rmse(predicted_prices, observed_prices):
     """
     error = compute_absolute_errors(predicted_prices, observed_prices)
     return np.sqrt(np.mean(error ** 2))
-    pass
+    
 
 
 # ============================================================
@@ -280,7 +280,7 @@ def run_backtest(data, option, pricing_function, calibration_function, n_steps, 
         })
     
     return pd.DataFrame(results)
-    pass
+    
 
 
 # ============================================================
@@ -337,7 +337,7 @@ def summarize_backtest_results(results):
         "erreur_max": np.max(np.abs(errors)),
         "n_nan": results["prix_prédit"].isna().sum()
     }
-    pass
+    
 
 
 # ============================================================
@@ -403,7 +403,7 @@ def analyze_stability(results):
         "p_star_stats": p_star_stats,
         "serie_temporelle": df, # exploitable directement dans les notebooks pour faire des graphiques
     }
-    pass
+    
 
 
 # ============================================================
@@ -450,7 +450,7 @@ def build_reference_prices(option_market_data=None, fallback_method=None):
         "Dans un contexte étudiant, tu peux utiliser Black-Scholes comme référence : "
         "fallback_method=lambda: black_scholes_prices(...)"
     )
-    pass
+    
 
 
 # ============================================================
