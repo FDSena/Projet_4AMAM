@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Page de garde</title>
+
+  <style>
+    html {
+      background-color: whitesmoke;
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      font-size: 11pt;
+    }
+
+    body {
+      height: 297mm;
+      width: 210mm;
+      margin: auto;
+      position: relative;
+      background-color: white;
+    }
+
+    header {
+      position: absolute;
+      top: 15mm;
+      right: 30mm;
+      left: 30mm;
+      height: 21mm;
+      z-index: 1;
+
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 2mm;
+
+      background-color: white;
+      border: 2px solid black;
+    }
+
+    header img {
+      width: 45%;
+      max-height: 18mm;
+      object-fit: contain;
+    }
+
+    main {
+      border: 2px solid black;
+      position: absolute;
+      top: 20mm;
+      right: 20mm;
+      bottom: 20mm;
+      left: 20mm;
+      padding: 20mm 10mm 25mm 10mm;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+	.students-list {
+	width: 100%;
+	text-align: center;
+	margin: 3mm 0;
+	}
+
+	.info-list {
+	width: 100%;
+	text-align: center;
+	margin: 3mm 0;
+	}
+
+
+	.students-list p {
+	display: block;
+	text-align: center;
+	font-size: 4.5mm;
+	line-height: 0.25;
+	}
+    .title-section {
+      text-align: center;
+      width: 140mm;
+    }
+
+    .title-section p {
+      margin: 0;
+      font-size: 6mm;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+
+    .image-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .image-section img {
+      width: 100mm;
+      max-height: 70mm;
+      object-fit: contain;
+    }
+
+    .tutor-section {
+      width: 100%;
+    }
+
+    .tutor-section p {
+      margin: 0;
+    }
+
+    .tutor-section .date {
+      margin-top: 5mm;
+      text-align: right;
+    }
+
+    footer {
+      background-color: white;
+      border: 2px solid black;
+      position: absolute;
+      right: 30mm;
+      bottom: 15mm;
+      left: 30mm;
+      padding: 2mm;
+      z-index: 1;
+    }
+
+    footer p {
+      margin: 0;
+      text-align: center;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <img src="../img/polytech.png" alt="Logo Polytech">
+    <img src="../img/ucbl.png" alt="Logo Université Claude Bernard Lyon 1">
+  </header>
+
+  <main>
+    <section class="student-info">
+      <p>
+        <span>Rapport</span>
+        <span>de</span>
+        <span>projet</span>
+        <span>de</span>
+        <span>4A</span>
+        <span>présenté</span>
+        <span>par</span>
+      </p>
+
+      <div class="students-list">
+  <p>Flavio DANTAS DE SENA</p>
+  <p>Dridi Mohamed DHIA</p>
+  <p>Noah ROUSSEL</p>
+		</div>
+
+	<div class="info-list">
+      <p>
+        <span>Filière MAM
+        <span>-</span>
+        année 2025-2026
+      </p>
+	  </div>
+    </section>
+
+    <section class="title-section">
+      <p>Estimation de la valeur d’option</p>
+      <p>pour le modèle de Cox, Ross et Rubinstein</p>
+    </section>
+
+    <section class="image-section">
+      <img src="../img/marche.png" alt="Illustration marché financier">
+    </section>
+
+    <section class="tutor-section">
+      <p>Tuteur de projet : Igor HONNORE</p>
+      <p>Tuteur académique : Thierry CLOPEAU</p>
+      <p class="date">Juin 2026</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      POLYTECH Lyon - UNIVERSITÉ CLAUDE BERNARD LYON 1<br>
+      Domaine Scientifique de La Doua - 15 Boulevard Latarjet,<br>
+      69100 VILLEURBANNE CEDEX<br>
+      Tél. (33) 04.72.43.12.24 - Fax. (33) 04.72.43.12.25<br>
+      https://polytech.univ-lyon1.fr/
+    </p>
+  </footer>
+</body>
+</html>

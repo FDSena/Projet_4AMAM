@@ -1,0 +1,495 @@
+\documentclass[11pt]{report}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+
+\usepackage{amsmath}                            % Mathématiques
+\usepackage{amssymb}                            % Symboles mathématiques
+\usepackage{array}                              % Tableaux
+\usepackage[french]{babel}                      % Langue française
+\usepackage{booktabs}                           % Tableaux propres
+\usepackage{enumitem}                           % Listes personnalisées
+\usepackage{fancybox}                           % Encadrés
+\usepackage{fancyhdr}                           % En-têtes et pieds de page
+\usepackage{float}                              % Placement des figures
+\usepackage{fontspec}                           % Police personnalisée
+\usepackage[a4paper, margin=2.5cm]{geometry}    % Marges
+\usepackage{graphicx}                           % Images
+\usepackage{hyperref}                           % Liens
+\usepackage{indentfirst}                        % Indentation du premier paragraphe
+\usepackage{makecell}                           % Cellules de tableau
+\usepackage{microtype}                          % Typographie
+\usepackage{pdfpages}                           % Inclusion de PDF
+\usepackage{setspace}                           % Interligne
+\usepackage{siunitx}                            % Unités
+\usepackage{soul}                               % Surlignage
+\usepackage{tocloft}                            % Table des matières
+
+% ============================================================
+% CONFIGURATION GÉNÉRALE
+% ============================================================
+
+\setmainfont{Verdana}
+\singlespacing
+\setlength{\parskip}{0.5em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\chaptername}{}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	urlcolor=blue,
+	citecolor=black
+}
+
+% ============================================================
+% DÉBUT DU DOCUMENT
+% ============================================================
+
+\begin{document}
+
+% ============================================================
+% PAGE DE GARDE
+% ============================================================
+
+\includepdf[pages=-]{appendix/titlepage.pdf}
+
+% ============================================================
+% REMERCIEMENTS
+% ============================================================
+
+\chapter*{Remerciements}
+\thispagestyle{empty}
+
+% Texte à rédiger.
+
+\newpage
+
+% ============================================================
+% RÉSUMÉ
+% ============================================================
+
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+
+% Résumé à rédiger.
+
+\vspace{1em}
+
+\textbf{Mots-clés :} option financière, modèle binomial, Cox-Ross-Rubinstein, call, put, volatilité, arbre binomial, probabilité risque-neutre, calibration, backtest.
+
+\newpage
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+% Abstract à rédiger.
+
+\vspace{1em}
+
+\textbf{Keywords:} financial option, binomial model, Cox-Ross-Rubinstein, call, put, volatility, binomial tree, risk-neutral probability, calibration, backtest.
+
+\newpage
+
+% ============================================================
+% TABLE DES MATIÈRES
+% ============================================================
+
+\pagenumbering{arabic}
+
+\renewcommand{\contentsname}{Table des matières}
+\setlength{\cftbeforechapskip}{0.5em}
+\tableofcontents
+
+\newpage
+
+% ============================================================
+% ABRÉVIATIONS ET NOTATIONS
+% ============================================================
+
+\chapter*{Abréviations et notations}
+\addcontentsline{toc}{chapter}{Abréviations et notations}
+
+\section*{Abréviations et acronymes}
+\addcontentsline{toc}{section}{Abréviations et acronymes}
+
+\begin{center}
+	\begin{minipage}[t]{0.49\textwidth}
+		\begin{itemize}[noitemsep]
+			\raggedright
+			\item CRR : Cox, Ross et Rubinstein
+			\item CAC 40 : indice boursier français
+			\item MAE : Mean Absolute Error
+			\item RMSE : Root Mean Squared Error
+		\end{itemize}
+	\end{minipage}
+	\hfill
+	\begin{minipage}[t]{0.49\textwidth}
+		\begin{itemize}[noitemsep]
+			\raggedright
+			\item ATM : At The Money
+			\item ITM : In The Money
+			\item OTM : Out of The Money
+			\item OHLCV : Open, High, Low, Close, Volume
+		\end{itemize}
+	\end{minipage}
+\end{center}
+
+\section*{Notations}
+\addcontentsline{toc}{section}{Notations}
+
+\begin{center}
+	\begin{minipage}[t]{0.49\textwidth}
+		\textbf{Notations financières}
+		\begin{itemize}[noitemsep]
+			\raggedright
+			\item $S_0$ : prix initial du sous-jacent
+			\item $S_T$ : prix du sous-jacent à maturité
+			\item $K$ : prix d’exercice
+			\item $T$ : maturité de l’option
+			\item $r$ : taux sans risque
+			\item $\sigma$ : volatilité du sous-jacent
+		\end{itemize}
+	\end{minipage}
+	\hfill
+	\begin{minipage}[t]{0.49\textwidth}
+		\textbf{Notations du modèle CRR}
+		\begin{itemize}[noitemsep]
+			\raggedright
+			\item $N$ : nombre d’étapes de l’arbre
+			\item $\Delta t$ : pas de temps
+			\item $u$ : facteur de hausse
+			\item $d$ : facteur de baisse
+			\item $p^*$ : probabilité risque-neutre
+			\item $V_{i,j}$ : valeur de l’option au nœud $(i,j)$
+		\end{itemize}
+	\end{minipage}
+\end{center}
+
+\newpage
+
+% ============================================================
+% INTRODUCTION
+% ============================================================
+
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+
+% Introduction à rédiger.
+
+\newpage
+
+% ============================================================
+% CHAPITRE 1
+% ============================================================
+
+\chapter{Cadre théorique financier}
+
+\section{Définition d’une option financière}
+
+\section{Actif sous-jacent}
+
+\section{Prix d’exercice et maturité}
+
+\section{Option call}
+
+\section{Option put}
+
+\section{Payoff d’une option}
+
+\subsection{Payoff d’un call}
+
+\subsection{Payoff d’un put}
+
+\section{Option européenne}
+
+\section{Option américaine}
+
+\section{Paramètres influençant le prix d’une option}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 2
+% ============================================================
+
+\chapter{Modèle de Cox, Ross et Rubinstein}
+
+\section{Principe général du modèle binomial}
+
+\section{Hypothèses du modèle}
+
+\section{Discrétisation du temps}
+
+\section{Construction de l’arbre des prix}
+
+\subsection{Prix initial du sous-jacent}
+
+\subsection{Facteur de hausse}
+
+\subsection{Facteur de baisse}
+
+\section{Formule des prix dans l’arbre}
+
+\section{Probabilité risque-neutre}
+
+\section{Actualisation}
+
+\section{Rétropropagation}
+
+\subsection{Cas d’une option européenne}
+
+\subsection{Cas d’une option américaine}
+
+\section{Différence entre option européenne et option américaine}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 3
+% ============================================================
+
+\chapter{Calibration des paramètres}
+
+\section{Objectif de la calibration}
+
+\section{Choix du sous-jacent}
+
+\section{Récupération des données de marché}
+
+\section{Nettoyage des données}
+
+\section{Prix de clôture}
+
+\section{Rendements logarithmiques}
+
+\section{Estimation de la volatilité historique}
+
+\section{Choix du taux sans risque}
+
+\section{Calcul du pas de temps}
+
+\section{Calcul des facteurs $u$ et $d$}
+
+\section{Calcul de la probabilité risque-neutre $p^*$}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 4
+% ============================================================
+
+\chapter{Implémentation informatique}
+
+\section{Architecture générale du projet}
+
+\section{Organisation des fichiers}
+
+\subsection{Fichier \texttt{option.py}}
+
+\subsection{Fichier \texttt{market\_data.py}}
+
+\subsection{Fichier \texttt{calibration.py}}
+
+\subsection{Fichier \texttt{crr.py}}
+
+\subsection{Fichier \texttt{backtester.py}}
+
+\section{Classe \texttt{Option}}
+
+\subsection{Attributs de la classe}
+
+\subsection{Méthode de calcul du payoff}
+
+\subsection{Vérification des paramètres}
+
+\section{Module de données de marché}
+
+\subsection{Téléchargement des données}
+
+\subsection{Nettoyage des données}
+
+\subsection{Calcul des rendements}
+
+\section{Module de calibration}
+
+\subsection{Estimation de la volatilité}
+
+\subsection{Gestion du taux sans risque}
+
+\subsection{Calcul des paramètres du modèle}
+
+\section{Module CRR}
+
+\subsection{Construction de l’arbre binomial}
+
+\subsection{Calcul des payoffs terminaux}
+
+\subsection{Pricing européen}
+
+\subsection{Pricing américain}
+
+\section{Module de backtest}
+
+\subsection{Comparaison des prix}
+
+\subsection{Calcul des erreurs}
+
+\subsection{Métriques d’évaluation}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 5
+% ============================================================
+
+\chapter{Expérimentations numériques}
+
+\section{Objectif des expérimentations}
+
+\section{Paramètres utilisés}
+
+\subsection{Choix du sous-jacent}
+
+\subsection{Choix du strike}
+
+\subsection{Choix de la maturité}
+
+\subsection{Choix du nombre d’étapes}
+
+\section{Exemple d’arbre binomial}
+
+\section{Pricing d’un call européen}
+
+\section{Pricing d’un put européen}
+
+\section{Pricing d’une option américaine}
+
+\section{Comparaison entre options européennes et américaines}
+
+\section{Influence du nombre d’étapes}
+
+\section{Influence de la volatilité}
+
+\section{Influence du strike}
+
+\section{Analyse des résultats obtenus}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 6
+% ============================================================
+
+\chapter{Backtest et validation du modèle}
+
+\section{Objectif du backtest}
+
+\section{Méthodologie de validation}
+
+\section{Fenêtre d’estimation}
+
+\section{Recalibration des paramètres}
+
+\section{Comparaison entre prix prédit et prix de référence}
+
+\section{Erreur absolue}
+
+\section{Erreur relative}
+
+\section{Mean Absolute Error}
+
+\section{Root Mean Squared Error}
+
+\section{Analyse de la stabilité du modèle}
+
+\section{Interprétation des résultats}
+
+\newpage
+
+% ============================================================
+% CHAPITRE 7
+% ============================================================
+
+\chapter{Limites et perspectives}
+
+\section{Limites du modèle CRR}
+
+\subsection{Hypothèse de volatilité constante}
+
+\subsection{Hypothèse de taux sans risque constant}
+
+\subsection{Discrétisation du temps}
+
+\section{Limites liées aux données réelles}
+
+\section{Limites liées à la calibration}
+
+\section{Limites liées à l’implémentation}
+
+\section{Améliorations possibles}
+
+\subsection{Utilisation d’une volatilité implicite}
+
+\subsection{Comparaison avec le modèle de Black-Scholes}
+
+\subsection{Augmentation du nombre d’étapes}
+
+\subsection{Utilisation de données d’options réelles}
+
+\newpage
+
+% ============================================================
+% CONCLUSION
+% ============================================================
+
+\chapter*{Conclusion et perspectives}
+\addcontentsline{toc}{chapter}{Conclusion et perspectives}
+
+% Conclusion à rédiger.
+
+\newpage
+
+% ============================================================
+% BIBLIOGRAPHIE
+% ============================================================
+
+\renewcommand{\bibname}{Bibliographie}
+\bibliographystyle{plain}
+\bibliography{dantas26report}
+\addcontentsline{toc}{chapter}{Bibliographie}
+
+\newpage
+
+% ============================================================
+% ANNEXES
+% ============================================================
+
+\chapter*{Annexes}
+\addcontentsline{toc}{chapter}{Annexes}
+
+\section*{Annexe A : Code Python}
+\addcontentsline{toc}{section}{Annexe A : Code Python}
+
+\section*{Annexe B : Résultats complémentaires}
+\addcontentsline{toc}{section}{Annexe B : Résultats complémentaires}
+
+\section*{Annexe C : Figures supplémentaires}
+\addcontentsline{toc}{section}{Annexe C : Figures supplémentaires}
+
+% ============================================================
+% FIN DU DOCUMENT
+% ============================================================
+
+\end{document}
