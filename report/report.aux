@@ -41,131 +41,116 @@
 \newlabel{def:rendement}{{1.16}{11}{Rendement d'un actif financier}{tcb@cnt@definition.1.16}{}}
 \newlabel{def:volatilite}{{1.17}{12}{Volatilité}{tcb@cnt@definition.1.17}{}}
 \newlabel{def:taux-sans-risque}{{1.18}{12}{Taux sans risque}{tcb@cnt@definition.1.18}{}}
-\citation{crr1979}
-\citation{crr1979}
-\citation{hull2018}
 \@writefile{toc}{\contentsline {chapter}{\numberline {2}Modèle de Cox, Ross et Rubinstein}{13}{chapter.2}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \@writefile{toc}{\contentsline {section}{\numberline {2.1}Principe général du modèle binomial}{13}{section.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Hypothèses du modèle}{13}{section.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2.3}Discrétisation du temps}{14}{section.2.3}\protected@file@percent }
-\citation{crr1979}
+\newlabel{def:modele-binomial}{{2.1}{13}{Modèle binomial}{tcb@cnt@definition.2.1}{}}
+\newlabel{def:arbre-binomial}{{2.2}{14}{Arbre binomial}{tcb@cnt@definition.2.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Hypothèses du modèle}{14}{section.2.2}\protected@file@percent }
+\newlabel{def:marche-sans-friction}{{2.3}{14}{Marché sans friction}{tcb@cnt@definition.2.3}{}}
+\newlabel{def:taux-sans-risque-constant}{{2.4}{14}{Taux sans risque constant}{tcb@cnt@definition.2.4}{}}
+\newlabel{def:volatilite-constante}{{2.5}{14}{Volatilité constante}{tcb@cnt@definition.2.5}{}}
+\newlabel{def:absence-arbitrage}{{2.6}{14}{Absence d'opportunité d'arbitrage}{tcb@cnt@definition.2.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}Discrétisation du temps}{15}{section.2.3}\protected@file@percent }
+\newlabel{def:pas-de-temps}{{2.7}{15}{Pas de temps}{tcb@cnt@definition.2.7}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2.4}Construction de l'arbre des prix}{15}{section.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Prix initial du sous-jacent}{15}{subsection.2.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Facteur de hausse}{15}{subsection.2.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}Facteur de baisse}{16}{subsection.2.4.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Arbre binomial recombiné pour $N = 2$. On vérifie que le nœud central de l'étape $i = 2$ vaut bien $S_0 \cdot u \cdot d = S_0 \cdot d \cdot u = S_0$.}}{16}{figure.2.1}\protected@file@percent }
-\newlabel{fig:arbre_recombinaison}{{2.1}{16}{Arbre binomial recombiné pour $N = 2$. On vérifie que le nœud central de l'étape $i = 2$ vaut bien $S_0 \cdot u \cdot d = S_0 \cdot d \cdot u = S_0$}{figure.2.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.5}Formule des prix dans l'arbre}{16}{section.2.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2.6}Probabilité risque-neutre}{17}{section.2.6}\protected@file@percent }
-\newlabel{sec:proba_risque_neutre}{{2.6}{17}{Probabilité risque-neutre}{section.2.6}{}}
-\citation{hull2018}
-\@writefile{toc}{\contentsline {section}{\numberline {2.7}Actualisation}{18}{section.2.7}\protected@file@percent }
-\newlabel{eq:actualisation}{{2.15}{18}{Actualisation}{equation.2.15}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.8}Rétropropagation}{19}{section.2.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.8.1}Cas d'une option européenne}{19}{subsection.2.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.8.2}Cas d'une option américaine}{19}{subsection.2.8.2}\protected@file@percent }
-\citation{hull2018}
-\@writefile{toc}{\contentsline {section}{\numberline {2.9}Différence entre option européenne et option américaine}{20}{section.2.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {3}Calibration des paramètres}{21}{chapter.3}\protected@file@percent }
+\newlabel{def:prix-noeud}{{2.8}{15}{Prix au nœud de l'arbre}{tcb@cnt@definition.2.8}{}}
+\newlabel{def:facteur-hausse}{{2.9}{16}{Facteur de hausse}{tcb@cnt@definition.2.9}{}}
+\newlabel{def:facteur-baisse}{{2.10}{16}{Facteur de baisse}{tcb@cnt@definition.2.10}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Calibration sur données de marché}{17}{chapter.3}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {3.1}Objectif de la calibration}{21}{section.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.2}Choix du sous-jacent}{21}{section.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.3}Récupération des données de marché}{21}{section.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.4}Nettoyage des données}{21}{section.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.5}Prix de clôture}{21}{section.3.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Rendements logarithmiques}{21}{section.3.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.7}Estimation de la volatilité historique}{21}{section.3.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.8}Choix du taux sans risque}{21}{section.3.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.9}Calcul du pas de temps}{21}{section.3.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.10}Calcul des facteurs $u$ et $d$}{21}{section.3.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3.11}Calcul de la probabilité risque-neutre $p^*$}{21}{section.3.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Implémentation informatique}{22}{chapter.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Récupération des données}{17}{section.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Nettoyage des données}{17}{section.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Rendements logarithmiques}{18}{section.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Estimation de la volatilité}{18}{section.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Choix du taux sans risque}{18}{section.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Calcul des paramètres CRR}{19}{section.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Implémentation informatique}{20}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}Architecture générale du projet}{23}{section.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}Organisation des fichiers}{23}{section.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Fichier \texttt  {option.py}}{23}{subsection.4.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Fichier \texttt  {market\_data.py}}{23}{subsection.4.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Fichier \texttt  {calibration.py}}{23}{subsection.4.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.4}Fichier \texttt  {crr.py}}{23}{subsection.4.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.5}Fichier \texttt  {backtester.py}}{23}{subsection.4.2.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.3}Classe \texttt  {Option}}{23}{section.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Attributs de la classe}{23}{subsection.4.3.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Méthode de calcul du payoff}{23}{subsection.4.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.3}Vérification des paramètres}{23}{subsection.4.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.4}Module de données de marché}{23}{section.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}Téléchargement des données}{23}{subsection.4.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}Nettoyage des données}{23}{subsection.4.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.3}Calcul des rendements}{23}{subsection.4.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.5}Module de calibration}{23}{section.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}Estimation de la volatilité}{23}{subsection.4.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}Gestion du taux sans risque}{23}{subsection.4.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.3}Calcul des paramètres du modèle}{23}{subsection.4.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.6}Module CRR}{23}{section.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.1}Construction de l’arbre binomial}{23}{subsection.4.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.2}Calcul des payoffs terminaux}{23}{subsection.4.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.3}Pricing européen}{23}{subsection.4.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.4}Pricing américain}{23}{subsection.4.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.7}Module de backtest}{23}{section.4.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.1}Comparaison des prix}{23}{subsection.4.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.2}Calcul des erreurs}{23}{subsection.4.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.3}Métriques d’évaluation}{23}{subsection.4.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Expérimentations numériques}{24}{chapter.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Architecture générale du projet}{21}{section.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Organisation des fichiers}{21}{section.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Fichier \texttt  {option.py}}{21}{subsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Fichier \texttt  {market\_data.py}}{21}{subsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Fichier \texttt  {calibration.py}}{21}{subsection.4.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.4}Fichier \texttt  {crr.py}}{21}{subsection.4.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.5}Fichier \texttt  {backtester.py}}{21}{subsection.4.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Classe \texttt  {Option}}{21}{section.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Attributs de la classe}{21}{subsection.4.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Méthode de calcul du payoff}{21}{subsection.4.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.3}Vérification des paramètres}{21}{subsection.4.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Module de données de marché}{21}{section.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}Téléchargement des données}{21}{subsection.4.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}Nettoyage des données}{21}{subsection.4.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.3}Calcul des rendements}{21}{subsection.4.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Module de calibration}{21}{section.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}Estimation de la volatilité}{21}{subsection.4.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}Gestion du taux sans risque}{21}{subsection.4.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.3}Calcul des paramètres du modèle}{21}{subsection.4.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Module CRR}{21}{section.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.1}Construction de l’arbre binomial}{21}{subsection.4.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.2}Calcul des payoffs terminaux}{21}{subsection.4.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.3}Pricing européen}{21}{subsection.4.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.4}Pricing américain}{21}{subsection.4.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}Module de backtest}{21}{section.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.1}Comparaison des prix}{21}{subsection.4.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.2}Calcul des erreurs}{21}{subsection.4.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7.3}Métriques d’évaluation}{21}{subsection.4.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Expérimentations numériques}{22}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {5.1}Objectif des expérimentations}{24}{section.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.2}Paramètres utilisés}{24}{section.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Choix du sous-jacent}{24}{subsection.5.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Choix du strike}{24}{subsection.5.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Choix de la maturité}{24}{subsection.5.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.4}Choix du nombre d’étapes}{24}{subsection.5.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.3}Exemple d’arbre binomial}{24}{section.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.4}Pricing d’un call européen}{24}{section.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Pricing d’un put européen}{24}{section.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Pricing d’une option américaine}{24}{section.5.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.7}Comparaison entre options européennes et américaines}{24}{section.5.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.8}Influence du nombre d’étapes}{24}{section.5.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.9}Influence de la volatilité}{24}{section.5.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.10}Influence du strike}{24}{section.5.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.11}Analyse des résultats obtenus}{24}{section.5.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Backtest et validation du modèle}{25}{chapter.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Objectif des expérimentations}{22}{section.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Paramètres utilisés}{22}{section.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Choix du sous-jacent}{22}{subsection.5.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Choix du strike}{22}{subsection.5.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Choix de la maturité}{22}{subsection.5.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.4}Choix du nombre d’étapes}{22}{subsection.5.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Exemple d’arbre binomial}{22}{section.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Pricing d’un call européen}{22}{section.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Pricing d’un put européen}{22}{section.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}Pricing d’une option américaine}{22}{section.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.7}Comparaison entre options européennes et américaines}{22}{section.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.8}Influence du nombre d’étapes}{22}{section.5.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.9}Influence de la volatilité}{22}{section.5.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.10}Influence du strike}{22}{section.5.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.11}Analyse des résultats obtenus}{22}{section.5.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Backtest et validation du modèle}{23}{chapter.6}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {6.1}Objectif du backtest}{25}{section.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.2}Méthodologie de validation}{25}{section.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.3}Fenêtre d’estimation}{25}{section.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.4}Recalibration des paramètres}{25}{section.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.5}Comparaison entre prix prédit et prix de référence}{25}{section.6.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.6}Erreur absolue}{25}{section.6.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.7}Erreur relative}{25}{section.6.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.8}Mean Absolute Error}{25}{section.6.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.9}Root Mean Squared Error}{25}{section.6.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.10}Analyse de la stabilité du modèle}{25}{section.6.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.11}Interprétation des résultats}{25}{section.6.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Limites et perspectives}{26}{chapter.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Objectif du backtest}{23}{section.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}Méthodologie de validation}{23}{section.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Fenêtre d’estimation}{23}{section.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Recalibration des paramètres}{23}{section.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.5}Comparaison entre prix prédit et prix de référence}{23}{section.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.6}Erreur absolue}{23}{section.6.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.7}Erreur relative}{23}{section.6.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.8}Mean Absolute Error}{23}{section.6.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.9}Root Mean Squared Error}{23}{section.6.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.10}Analyse de la stabilité du modèle}{23}{section.6.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.11}Interprétation des résultats}{23}{section.6.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Limites et perspectives}{24}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {7.1}Limites du modèle CRR}{26}{section.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.1}Hypothèse de volatilité constante}{26}{subsection.7.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.2}Hypothèse de taux sans risque constant}{26}{subsection.7.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.3}Discrétisation du temps}{26}{subsection.7.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7.2}Limites liées aux données réelles}{26}{section.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7.3}Limites liées à la calibration}{26}{section.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7.4}Limites liées à l’implémentation}{26}{section.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7.5}Améliorations possibles}{26}{section.7.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.1}Utilisation d’une volatilité implicite}{26}{subsection.7.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.2}Comparaison avec le modèle de Black-Scholes}{26}{subsection.7.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.3}Augmentation du nombre d’étapes}{26}{subsection.7.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.4}Utilisation de données d’options réelles}{26}{subsection.7.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{Conclusion et perspectives}{27}{chapter*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Limites du modèle CRR}{24}{section.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.1}Hypothèse de volatilité constante}{24}{subsection.7.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.2}Hypothèse de taux sans risque constant}{24}{subsection.7.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1.3}Discrétisation du temps}{24}{subsection.7.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}Limites liées aux données réelles}{24}{section.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7.3}Limites liées à la calibration}{24}{section.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7.4}Limites liées à l’implémentation}{24}{section.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7.5}Améliorations possibles}{24}{section.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.1}Utilisation d’une volatilité implicite}{24}{subsection.7.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.2}Comparaison avec le modèle de Black-Scholes}{24}{subsection.7.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.3}Augmentation du nombre d’étapes}{24}{subsection.7.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.4}Utilisation de données d’options réelles}{24}{subsection.7.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{Conclusion et perspectives}{25}{chapter*.8}\protected@file@percent }
 \bibstyle{plain}
 \bibdata{dantas26report}
-\@writefile{toc}{\contentsline {chapter}{Bibliographie}{28}{chapter*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{Annexes}{28}{chapter*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{Annexe A : Code Python}{28}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{Annexe B : Résultats complémentaires}{28}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{Annexe C : Figures supplémentaires}{28}{section*.16}\protected@file@percent }
-\gdef \@abspage@last{32}
+\@writefile{toc}{\contentsline {chapter}{Bibliographie}{26}{chapter*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{Annexes}{26}{chapter*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Annexe A : Code Python}{26}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Annexe B : Résultats complémentaires}{26}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Annexe C : Figures supplémentaires}{26}{section*.12}\protected@file@percent }
+\gdef \@abspage@last{30}

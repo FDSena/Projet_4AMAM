@@ -309,12 +309,110 @@ Il est utilisé pour ramener une valeur future à sa valeur actuelle.
 Le taux sans risque influence donc la valeur actuelle des montants payés ou reçus dans le futur. Dans les modèles de valorisation d'options, il intervient notamment dans l'actualisation des payoffs futurs.
 
 Ainsi, les principaux paramètres utilisés pour valoriser une option sont le prix du sous-jacent $S_t$, le prix d'exercice $K$, la maturité $T$, la volatilité $\sigma$ et le taux sans risque $r$. Ces grandeurs seront utilisées dans la suite du rapport pour construire le modèle binomial de Cox-Ross-Rubinstein.
-\end{document}
 
-   3. Calibration sur données de marché
-   3.1 Récupération des données
-   3.2 Nettoyage des données
-   3.3 Rendements logarithmiques
-   3.4 Estimation de la volatilité
-   3.5 Choix du taux sans risque
-   3.6 Calcul des paramètres CRR
+% ============================================================
+% CHAPITRE 3
+% ============================================================
+
+\chapter{Calibration sur données de marché}
+
+Les paramètres introduits dans les chapitres précédents doivent maintenant être déterminés à partir de données réelles. Le modèle CRR nécessite notamment le prix initial du sous-jacent $S_0$, la volatilité annualisée $\sigma$, le taux sans risque $r_f$, la maturité $T$ et le nombre d'étapes $N$.
+
+Certains de ces paramètres sont directement observables, comme le prix du sous-jacent. D'autres, comme la volatilité, doivent être estimés à partir de l'historique des prix. L'objectif de ce chapitre est donc de décrire la méthode utilisée pour passer d'une série de prix de marché aux paramètres du modèle binomial.
+
+\section{Récupération des données}
+
+La première étape consiste à récupérer l'historique des prix de l'actif sous-jacent étudié. Dans ce rapport, le sous-jacent considéré est une action. On note la série de prix observés
+\[
+S_0, S_1, \ldots, S_n,
+\]
+où $S_i$ désigne le prix de l'actif à la date $i$.
+
+Les données utilisées correspondent aux prix de clôture, ou aux prix de clôture ajustés lorsque ceux-ci sont disponibles. Les prix ajustés sont particulièrement utiles, car ils tiennent compte de certains événements financiers comme les dividendes ou les divisions d'actions.
+
+Cette étape fournit la série chronologique de prix qui servira ensuite au calcul des rendements logarithmiques.
+
+\section{Nettoyage des données}
+
+Avant d'utiliser les prix récupérés, il est nécessaire de vérifier la qualité des données. Les observations doivent être classées dans l'ordre chronologique, car les rendements sont calculés entre deux dates successives.
+
+Les valeurs manquantes sont retirées afin d'éviter des erreurs dans les calculs. On vérifie également que les prix sont strictement positifs, puisque le calcul des rendements logarithmiques repose sur un logarithme. Après cette étape, la série de prix peut être utilisée pour la suite de la calibration.
+
+\section{Rendements logarithmiques}
+
+À partir de la série de prix nettoyée, on calcule les rendements logarithmiques du sous-jacent. Pour deux dates consécutives $i-1$ et $i$, le rendement est défini par
+\[
+R_i = \ln\left(\frac{S_i}{S_{i-1}}\right).
+\]
+
+On obtient ainsi une série de rendements
+\[
+R_1, R_2, \ldots, R_n.
+\]
+
+Ces rendements décrivent les variations relatives du prix du sous-jacent. Ils seront utilisés pour estimer la volatilité historique.
+
+\section{Estimation de la volatilité}
+
+La volatilité utilisée dans le modèle CRR est estimée à partir des rendements logarithmiques. On commence par calculer le rendement moyen
+\[
+\bar{R} = \frac{1}{n}\sum_{i=1}^{n} R_i.
+\]
+
+L'écart-type empirique des rendements est ensuite donné par
+\[
+\sigma_{\text{jour}} =
+\sqrt{
+\frac{1}{n-1}
+\sum_{i=1}^{n}
+(R_i - \bar{R})^2
+}.
+\]
+
+Lorsque les données sont journalières, cette volatilité doit être annualisée afin d'être cohérente avec les autres paramètres du modèle. En supposant 252 jours de bourse par an, on obtient
+\[
+\sigma = \sigma_{\text{jour}}\sqrt{252}.
+\]
+
+La valeur annualisée $\sigma$ sera utilisée dans le calcul des facteurs de hausse et de baisse.
+
+\section{Choix du taux sans risque}
+
+Le taux sans risque utilisé dans le modèle est noté $r_f$. Il doit être exprimé sur une base annuelle, comme la volatilité $\sigma$ et la maturité $T$.
+
+En pratique, ce taux peut être approché par le rendement d'une obligation d'État dont l'échéance est proche de celle de l'option étudiée. Dans ce rapport, on suppose que $r_f$ reste constant pendant toute la durée de vie de l'option.
+
+\section{Calcul des paramètres CRR}
+
+Une fois $\sigma$, $r_f$, $T$ et $N$ fixés, les paramètres du modèle CRR peuvent être calculés. Le pas de temps vaut
+\[
+\Delta t = \frac{T}{N}.
+\]
+
+Les facteurs de hausse et de baisse sont définis par
+\[
+u = e^{\sigma\sqrt{\Delta t}}
+\qquad \text{et} \qquad
+d = e^{-\sigma\sqrt{\Delta t}}.
+\]
+
+Dans le modèle CRR, on a également $d = 1/u$, ce qui permet d'obtenir un arbre recombiné.
+
+La probabilité risque-neutre est ensuite calculée par
+\[
+p^* = \frac{e^{r_f \Delta t} - d}{u - d}.
+\]
+
+Pour que cette quantité soit bien une probabilité, elle doit vérifier
+\[
+0 < p^* < 1.
+\]
+
+À la fin de la calibration, les paramètres nécessaires à la construction de l'arbre binomial sont donc
+\[
+\Delta t, \quad u, \quad d, \quad p^*.
+\]
+
+Ces valeurs seront utilisées dans l'implémentation informatique du modèle pour calculer le prix de l'option.
+
+\end{document}

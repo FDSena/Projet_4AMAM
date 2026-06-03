@@ -496,595 +496,259 @@ Ainsi, les principaux paramètres utilisés pour valoriser une option sont le pr
 
 \chapter{Modèle de Cox, Ross et Rubinstein}
 
-IL MANQUE UNE INTRODUCTION À CE CHAPITRE
+Après avoir présenté les notions financières fondamentales liées aux options, nous pouvons maintenant introduire un premier modèle de valorisation. L'objectif est de déterminer, à partir des paramètres du contrat et du marché, une estimation du prix d'une option.
+
+Dans ce chapitre, nous présentons le modèle binomial de Cox, Ross et Rubinstein, souvent appelé modèle CRR. Ce modèle repose sur une représentation discrète de l'évolution du prix du sous-jacent. À chaque période, le prix peut seulement évoluer selon deux possibilités : une hausse ou une baisse. Cette structure simple permet de construire un arbre de prix et de calculer progressivement la valeur de l'option.
 
 \section{Principe général du modèle binomial}
 
-Le modèle de Cox, Ross et Rubinstein (CRR) a été introduit en 1979 dans
-l'article fondateur \textit{Option Pricing: A Simplified Approach}~\cite{crr1979}.
-Son objectif est de répondre à une question concrète : \textbf{quel est le
-juste prix d'une option financière aujourd'hui ?}
+Le modèle de Cox, Ross et Rubinstein a été introduit en 1979. Il propose une méthode de valorisation des options fondée sur une représentation discrète du temps. Au lieu de supposer que le prix du sous-jacent évolue continûment, le modèle découpe la période de vie de l'option en un nombre fini d'étapes.
 
-Pour y répondre, le modèle propose une représentation simplifiée mais
-rigoureuse de l'évolution du prix d'un actif au fil du temps. L'idée de
-base est la suivante : plutôt que de supposer que le prix d'un actif peut
-prendre une infinité de valeurs à chaque instant (comme dans les modèles
-continus), le modèle CRR découpe le temps en petites périodes discrètes,
-et suppose qu'à l'issue de chacune d'elles, le prix ne peut évoluer que de
-deux façons possibles :
+À chaque étape, le prix du sous-jacent peut évoluer de deux manières. Il peut augmenter selon un facteur de hausse, noté $u$, ou diminuer selon un facteur de baisse, noté $d$.
 
-\begin{itemize}
-    \item soit il \textbf{monte} d'un facteur $u > 1$ (hausse),
-    \item soit il \textbf{descend} d'un facteur $d < 1$ (baisse).
-\end{itemize}
+\begin{definition}{Modèle binomial}{modele-binomial}
+Un modèle binomial est un modèle dans lequel, à chaque période, le prix du sous-jacent ne peut prendre que deux évolutions possibles : une hausse ou une baisse.
+\end{definition}
 
-En répétant cette bifurcation sur $N$ périodes successives, on obtient
-une structure arborescente — appelée \textbf{arbre binomial} — qui recense
-toutes les trajectoires possibles du prix de l'actif entre aujourd'hui et
-la date d'échéance de l'option. C'est sur cet arbre que le prix de l'option
-est ensuite calculé.
+Dans le modèle CRR, si le prix du sous-jacent vaut $S$ à une date donnée, alors à la période suivante il peut devenir soit
+\[
+S u,
+\]
+en cas de hausse, soit
+\[
+S d,
+\]
+en cas de baisse.
 
-Ce modèle présente deux avantages majeurs. D'abord, il est \textbf{intuitif} :
-chaque nœud de l'arbre correspond à un état de marché possible, et la logique
-de valorisation est transparente. Ensuite, il est \textbf{flexible} : il
-permet de valoriser aussi bien les options européennes (exercice uniquement
-à l'échéance) que les options américaines (exercice possible à tout moment),
-ce que les formules analytiques comme Black-Scholes ne permettent pas en
-général. Enfin, il peut être démontré que, lorsque le nombre de périodes $N$
-tend vers l'infini, le prix obtenu par le modèle CRR converge vers le prix
-de Black-Scholes~\cite{crr1979}.
+On suppose généralement que
+\[
+u > 1
+\qquad \text{et} \qquad
+0 < d < 1.
+\]
+
+Le facteur $u$ représente donc une évolution positive du prix du sous-jacent, tandis que le facteur $d$ représente une évolution négative. En répétant cette construction sur plusieurs périodes, on obtient un arbre binomial représentant les différentes valeurs possibles du sous-jacent jusqu'à la maturité de l'option.
+
+\begin{definition}{Arbre binomial}{arbre-binomial}
+Un arbre binomial est une structure qui représente les différentes évolutions possibles du prix d'un actif lorsque, à chaque étape, ce prix peut soit augmenter, soit diminuer.
+\end{definition}
+
+L'intérêt du modèle binomial est qu'il permet de calculer le prix d'une option de manière progressive. On commence par déterminer les valeurs possibles du sous-jacent à la maturité, puis on calcule les payoffs associés. Ensuite, on remonte l'arbre jusqu'à la date initiale afin d'obtenir le prix de l'option aujourd'hui.
 
 \section{Hypothèses du modèle}
 
-Comme tout modèle mathématique, le modèle CRR repose sur un ensemble
-d'hypothèses simplificatrices. Ces hypothèses permettent de rendre le
-problème mathématiquement traitable, au prix d'un certain éloignement par
-rapport à la réalité des marchés. Elles sont détaillées et discutées dans
-Hull~\cite{hull2018}.
+Comme tout modèle financier, le modèle CRR repose sur plusieurs hypothèses simplificatrices. Ces hypothèses permettent d'obtenir un cadre mathématique clair pour valoriser les options.
 
-\begin{itemize}
-    \item \textbf{Marché sans friction.} On suppose qu'il n'existe pas de
-    coûts de transaction (pas de frais de courtage, pas de taxes), que les
-    actifs sont infiniment divisibles (on peut acheter $0{,}001$ action), et
-    qu'il est possible de vendre un actif que l'on ne possède pas (vente à
-    découvert). En pratique, ces frictions existent, mais les ignorer simplifie
-    considérablement le calcul.
+\begin{definition}{Marché sans friction}{marche-sans-friction}
+Un marché sans friction est un marché dans lequel on suppose qu'il n'existe pas de coûts de transaction, pas de taxes, et que les actifs peuvent être achetés ou vendus librement.
+\end{definition}
 
-    \item \textbf{Taux sans risque constant.} Il existe un taux d'intérêt $r$
-    auquel tout investisseur peut emprunter ou prêter de l'argent sans risque,
-    et ce taux reste constant pendant toute la durée de vie de l'option. En
-    pratique, on peut utiliser le taux des obligations d'État à court terme
-    comme approximation.
+Dans le cadre du modèle CRR, on suppose d'abord que le marché est sans friction. Cette hypothèse simplifie les calculs, car elle permet de ne pas tenir compte des frais liés aux achats et ventes d'actifs.
 
-    \item \textbf{Volatilité constante.} La volatilité $\sigma$ — qui mesure
-    l'amplitude des fluctuations du prix de l'actif (voir définition
-    ci-dessous) — est supposée constante. C'est une hypothèse forte : en
-    réalité, la volatilité varie dans le temps (phénomène du \textit{smile
-    de volatilité}).
+On suppose également que le taux sans risque reste constant pendant toute la durée de vie de l'option. Pour éviter toute confusion avec les rendements du sous-jacent, on note ce taux $r_f$.
 
-    \item \textbf{Absence de dividendes.} L'actif sous-jacent ne verse aucun
-    dividende pendant la durée de vie de l'option. Des extensions du modèle
-    permettent de lever cette hypothèse.
+\begin{definition}{Taux sans risque constant}{taux-sans-risque-constant}
+Le taux sans risque est supposé constant lorsque sa valeur ne change pas pendant toute la période étudiée.
 
-    \item \textbf{Absence d'opportunité d'arbitrage.} Il est impossible de
-    réaliser un profit certain sans risque et sans apport de capital initial.
-    Cette hypothèse est la plus fondamentale : c'est elle qui permet de
-    définir un prix unique et cohérent pour l'option.
-\end{itemize}
+Dans le modèle CRR, ce taux est noté $r_f$.
+\end{definition}
 
-\medskip
+Le modèle suppose aussi que la volatilité du sous-jacent est constante. Cette hypothèse signifie que l'intensité des variations du prix de l'actif ne change pas au cours du temps.
 
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Volatilité historique annualisée $\sigma$}
+\begin{definition}{Volatilité constante}{volatilite-constante}
+La volatilité est dite constante lorsque le paramètre $\sigma$ reste identique pendant toute la durée de vie de l'option.
+\end{definition}
 
-\medskip
-La volatilité d'un actif mesure la dispersion de ses rendements autour de
-leur moyenne. Formellement, si l'on note $r_t = \ln(S_t / S_{t-1})$ le
-\emph{log-rendement} (ou rendement logarithmique) de l'actif entre deux
-instants consécutifs, la volatilité annualisée est l'écart-type de ces
-log-rendements, multiplié par la racine carrée du nombre de périodes par
-an :
+Enfin, le modèle repose sur l'absence d'opportunité d'arbitrage. Cette hypothèse est fondamentale, car elle garantit qu'il n'est pas possible de réaliser un profit certain sans prendre de risque.
 
-\begin{equation}
-    \sigma = \sqrt{\frac{1}{n-1} \sum_{t=1}^{n} (r_t - \bar{r})^2}
-             \times \sqrt{252}
-\end{equation}
+\begin{definition}{Absence d'opportunité d'arbitrage}{absence-arbitrage}
+L'absence d'opportunité d'arbitrage signifie qu'il est impossible de construire une stratégie permettant d'obtenir un gain certain sans risque et sans investissement initial.
+\end{definition}
 
-où $\bar{r} = \frac{1}{n}\sum_{t=1}^n r_t$ est la moyenne des log-rendements
-et $252$ est le nombre conventionnel de jours de bourse par an. Une volatilité
-élevée signifie que le prix de l'actif fluctue fortement ; une volatilité
-faible indique un actif plus stable.
-\end{minipage}
-}
+Ces hypothèses ne décrivent pas parfaitement la réalité des marchés financiers. Cependant, elles permettent de construire un modèle simple, cohérent et utilisable pour comprendre les mécanismes de valorisation des options.
 
 \section{Discrétisation du temps}
 
-Le modèle CRR travaille en temps discret : la durée de vie de l'option,
-notée $T$ (exprimée en années), est découpée en $N$ intervalles de durée
-égale. Chaque intervalle est appelé un \textbf{pas de temps}.
+Le modèle CRR travaille en temps discret. Cela signifie que la durée de vie de l'option n'est pas considérée comme continue, mais découpée en plusieurs périodes de même longueur.
 
-\medskip
+Si la maturité de l'option est notée $T$ et si l'on choisit de découper cette période en $N$ étapes, alors la durée d'une étape est notée $\Delta t$.
 
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Pas de temps $\Delta t$}
+\begin{definition}{Pas de temps}{pas-de-temps}
+Le pas de temps, noté $\Delta t$, désigne la durée d'une période élémentaire dans l'arbre binomial.
 
-\medskip
-Le pas de temps élémentaire du modèle est la durée d'une seule période de
-l'arbre binomial. Il est défini par :
+Il est défini par
+\[
+\Delta t = \frac{T}{N},
+\]
+où $T$ est la maturité de l'option et $N$ le nombre d'étapes de l'arbre.
+\end{definition}
 
-\begin{equation}
-    \Delta t = \frac{T}{N}
-\end{equation}
+Ainsi, plus le nombre d'étapes $N$ est grand, plus le pas de temps $\Delta t$ est petit. L'arbre décrit alors l'évolution du sous-jacent de manière plus fine.
 
-où $T$ est la maturité de l'option (en années) et $N$ le nombre d'étapes
-choisi pour l'arbre.
-\end{minipage}
-}
+À l'étape $i$, le temps correspondant est donné par
+\[
+t_i = i \Delta t,
+\]
+avec
+\[
+i = 0,1,\ldots,N.
+\]
 
-\medskip
-
-Par exemple, pour une option de maturité $T = 1$ an découpée en $N = 252$
-étapes, on obtient $\Delta t = 1/252 \approx 0{,}004$ an, ce qui correspond
-environ à un jour de bourse.
-
-À chaque étape $i \in \{0, 1, \ldots, N\}$, le temps correspondant est
-$t_i = i \cdot \Delta t$ : l'étape $i = 0$ est la date d'aujourd'hui,
-l'étape $i = N$ est la date d'échéance de l'option.
-
-Plus $N$ est grand, plus la discrétisation est fine et plus le prix calculé
-par le modèle CRR se rapproche du prix continu de Black-Scholes. En pratique,
-quelques centaines d'étapes suffisent à obtenir une bonne précision.
+L'étape $i=0$ correspond à la date initiale, tandis que l'étape $i=N$ correspond à la maturité de l'option.
 
 \section{Construction de l'arbre des prix}
 
-\subsection{Prix initial du sous-jacent}
+L'arbre binomial est construit à partir du prix initial du sous-jacent, noté $S_0$. À chaque étape, le prix peut être multiplié par le facteur de hausse $u$ ou par le facteur de baisse $d$.
 
-L'arbre est initialisé à sa racine (étape $i = 0$) avec le prix courant
-de l'actif sous-jacent, noté $S_0$. C'est le seul prix connu avec certitude ;
-tous les prix futurs sont des valeurs possibles, pas des valeurs certaines.
+On repère chaque nœud de l'arbre par deux indices $(i,j)$, où $i$ représente l'étape temporelle et $j$ le nombre de hausses observées depuis la date initiale.
 
-À partir de ce nœud unique, l'arbre se ramifie à chaque étape en deux
-branches : une hausse (multiplication par $u$) et une baisse (multiplication
-par $d$). On repère chaque nœud par une paire $(i, j)$, où $i$ est le numéro
-de l'étape temporelle et $j$ est le nombre de hausses qui se sont produites
-depuis le départ.
-
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Prix au nœud $(i, j)$}
-
-\medskip
-Le prix de l'actif sous-jacent au nœud $(i, j)$ de l'arbre est :
-
-\begin{equation}
-    S_{i,j} = S_0 \cdot u^j \cdot d^{i-j}
-\end{equation}
-
-où :
-\begin{itemize}[noitemsep]
-    \item $i \in \{0, 1, \ldots, N\}$ est le numéro de l'étape (le temps),
-    \item $j \in \{0, 1, \ldots, i\}$ est le nombre de hausses survenues,
-    \item $i - j$ est donc le nombre de baisses survenues,
-    \item $u > 1$ est le facteur de hausse,
-    \item $d < 1$ est le facteur de baisse.
-\end{itemize}
-\end{minipage}
-}
-
-\medskip
-
-Intuitivement, si le marché a monté $j$ fois et baissé $i-j$ fois, le prix
-final est $S_0$ multiplié $j$ fois par $u$ et $i-j$ fois par $d$.
-
-\subsection{Facteur de hausse}
-
-Le facteur de hausse $u$ quantifie de combien le prix de l'actif augmente
-lors d'une période haussière. Il dépend directement de la volatilité $\sigma$
-de l'actif et de la durée du pas de temps $\Delta t$.
-
-La formule proposée par Cox, Ross et Rubinstein~\cite{crr1979} est :
-
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Facteur de hausse $u$}
-
-\begin{equation}
-    u = e^{\sigma \sqrt{\Delta t}}
-\end{equation}
-
-où $e \approx 2{,}718$ est la base de l'exponentielle naturelle, $\sigma$
-est la volatilité annualisée de l'actif, et $\Delta t$ est la durée d'un pas
-de temps.
-\end{minipage}
-}
-
-\medskip
-
-\textbf{Pourquoi cette formule ?} Elle provient d'un argument de cohérence
-avec les modèles financiers continus. Pour que le modèle discret soit
-compatible avec l'hypothèse que le prix de l'actif suit un mouvement brownien
-géométrique (hypothèse standard en finance, à la base du modèle de
-Black-Scholes), il faut que la \textit{variance} des log-rendements sur une
-période soit égale à $\sigma^2 \Delta t$. Or, si le log-rendement sur une
-hausse vaut $\ln(u) = \sigma\sqrt{\Delta t}$, on vérifie que
-$(\ln u)^2 = \sigma^2 \Delta t$, ce qui assure cette cohérence.
-
-\textbf{Exemple numérique.} Pour une action dont la volatilité annuelle est
-$\sigma = 20\%$ et un pas de temps $\Delta t = 1/52$ an (une semaine) :
+\begin{definition}{Prix au nœud de l'arbre}{prix-noeud}
+Dans l'arbre binomial, le prix du sous-jacent au nœud $(i,j)$ est donné par
 \[
-    u = e^{0{,}20 \times \sqrt{1/52}} \approx e^{0{,}0277} \approx 1{,}028
+S_{i,j} = S_0 u^j d^{i-j},
 \]
-Cela signifie qu'une semaine haussière multiplie le prix par environ $1{,}028$,
-soit une hausse de $2{,}8\%$.
+où $i$ désigne l'étape de l'arbre et $j$ le nombre de hausses observées.
+\end{definition}
 
-\subsection{Facteur de baisse}
+Dans cette formule, le terme $u^j$ correspond aux $j$ hausses successives, tandis que le terme $d^{i-j}$ correspond aux $i-j$ baisses. Ainsi, à une étape donnée $i$, plusieurs valeurs du sous-jacent sont possibles selon le nombre de hausses et de baisses réalisées.
 
-Le facteur de baisse $d$ est, dans le modèle CRR, simplement l'inverse du
-facteur de hausse.
+Le choix des facteurs $u$ et $d$ est essentiel dans le modèle CRR. Ils sont définis à partir de la volatilité $\sigma$ et du pas de temps $\Delta t$.
 
-\medskip
+\begin{definition}{Facteur de hausse}{facteur-hausse}
+Dans le modèle CRR, le facteur de hausse est noté $u$ et défini par
+\[
+u = e^{\sigma\sqrt{\Delta t}}.
+\]
+\end{definition}
 
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Facteur de baisse $d$}
+Le facteur $u$ mesure l'augmentation possible du prix du sous-jacent pendant une période. Plus la volatilité $\sigma$ est élevée, plus le facteur de hausse est important.
 
-\begin{equation}
-    d = e^{-\sigma \sqrt{\Delta t}} = \frac{1}{u}
-\end{equation}
-\end{minipage}
-}
+\begin{definition}{Facteur de baisse}{facteur-baisse}
+Dans le modèle CRR, le facteur de baisse est noté $d$ et défini par
+\[
+d = e^{-\sigma\sqrt{\Delta t}}.
+\]
+\end{definition}
 
-\medskip
+On remarque que
+\[
+d = \frac{1}{u}.
+\]
 
-\textbf{Pourquoi $d = 1/u$ ?} Ce choix garantit une propriété très utile
-appelée la \textbf{recombinaison de l'arbre}. En effet :
+Cette relation permet d'obtenir un arbre recombiné. Cela signifie qu'une hausse suivie d'une baisse conduit au même prix qu'une baisse suivie d'une hausse :
+\[
+S_0 u d = S_0 d u.
+\]
 
-\begin{equation}
-    S_0 \cdot u \cdot d = S_0 \cdot u \cdot \frac{1}{u} = S_0
-\end{equation}
+Cette propriété est importante, car elle réduit fortement le nombre de nœuds à calculer dans l'arbre.
 
-Cela signifie que peu importe l'ordre dans lequel surviennent une hausse
-et une baisse, on retombe toujours au même prix. L'arbre \og se referme \fg{}
-sur lui-même, comme illustré sur la figure~\ref{fig:arbre_recombinaison}.
+Le modèle CRR repose donc sur une construction discrète du prix du sous-jacent à partir de paramètres précis, notamment le pas de temps $\Delta t$, les facteurs de hausse et de baisse $u$ et $d$, ainsi que la probabilité risque-neutre $p^*$. Ces paramètres ne sont pas choisis arbitrairement : ils doivent être déterminés à partir des caractéristiques de l'option et des données de marché disponibles.
 
-\begin{figure}[H]
-\centering
-\begin{equation*}
-\begin{array}{ccccc}
-            &           & S_0 u^2   \\
-            & S_0 u     &           \\
-S_0         &           & S_0       \\
-            & S_0 d     &           \\
-            &           & S_0 d^2
-\end{array}
-\end{equation*}
-\caption{Arbre binomial recombiné pour $N = 2$. On vérifie que le nœud
-central de l'étape $i = 2$ vaut bien $S_0 \cdot u \cdot d = S_0 \cdot d
-\cdot u = S_0$.}
-\label{fig:arbre_recombinaison}
-\end{figure}
-
-Cette propriété est cruciale sur le plan calculatoire : un arbre recombiné
-ne contient que $N+1$ nœuds distincts à l'étape finale, contre $2^N$ pour
-un arbre non recombiné. Pour $N = 100$, cela représente respectivement $101$
-nœuds contre $2^{100} \approx 10^{30}$ — un gain de calcul considérable.
-
-\section{Formule des prix dans l'arbre}
-
-À l'étape finale $i = N$ de l'arbre, on dénombre $N+1$ nœuds distincts. Ils
-représentent tous les prix possibles de l'actif à l'échéance de l'option :
-
-\begin{equation}
-    S_{N,j} = S_0 \cdot u^j \cdot d^{N-j}, \quad j = 0, 1, \ldots, N
-\end{equation}
-
-Le nœud $j = 0$ correspond au scénario le plus défavorable ($N$ baisses
-successives) et le nœud $j = N$ au scénario le plus favorable ($N$ hausses
-successives). Les nœuds intermédiaires correspondent à des scenarii mixtes.
-
-Pour illustrer, voici l'arbre complet pour $N = 3$ :
-
-\begin{equation*}
-\begin{array}{ccccccc}
-                &           &           & S_0 u^3   \\
-                &           & S_0 u^2   &           \\
-                & S_0 u     &           & S_0 u     \\
-S_0             &           & S_0       &           \\
-                & S_0 d     &           & S_0 d     \\
-                &           & S_0 d^2   &           \\
-                &           &           & S_0 d^3
-\end{array}
-\end{equation*}
-
-On vérifie la recombinaison : le nœud central de la dernière colonne est
-$S_0 u^1 d^2$ ou $S_0 d^1 u^2$, les deux expressions donnant $S_0 u d^2$ et
-$S_0 u^2 d$ respectivement, et le nœud $(3, 1)$ vaut bien $S_0 u d^2 = S_0 d^2 u$.
-
-\section{Probabilité risque-neutre}
-\label{sec:proba_risque_neutre}
-
-\subsection*{Intuition}
-
-Une fois l'arbre des prix construit, il faut un moyen d'agréger les différentes
-valeurs possibles de l'option pour en déduire son prix aujourd'hui. Pour cela,
-on va \og peser \fg{} chaque scénario par une probabilité, puis actualiser.
-Mais quelle probabilité utiliser ?
-
-La réponse du modèle CRR est d'utiliser non pas les probabilités réelles du
-marché (que l'on ne connaît pas), mais une probabilité artificielle, dite
-\textbf{risque-neutre}, construite de façon à ce que l'absence d'arbitrage
-soit vérifiée.
-
-\subsection*{Dérivation}
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Probabilité risque-neutre $p^*$}
-
-\medskip
-La probabilité risque-neutre est la probabilité de hausse $p^* \in (0,1)$
-telle que le rendement espéré de l'actif sous-jacent est exactement égal
-au taux sans risque $r$. Elle est définie par :
-
-\begin{equation}
-    \boxed{p^* = \frac{e^{r \Delta t} - d}{u - d}}
-\end{equation}
-
-La probabilité de baisse est alors $1 - p^* = \dfrac{u - e^{r\Delta t}}{u - d}$.
-\end{minipage}
-}
-
-\medskip
-
-\textbf{Comment obtient-on cette formule ?} On impose la condition
-d'absence d'arbitrage : le prix actualisé de l'actif doit être une
-\textit{martingale} sous la probabilité $p^*$, ce qui signifie que le prix
-actuel de l'actif doit être égal à l'espérance de son prix futur,
-actualisée au taux sans risque. Sur une seule période, cela s'écrit :
-
-\begin{equation}
-    S \cdot e^{r \Delta t} = p^* \cdot (u \cdot S) + (1 - p^*) \cdot (d \cdot S)
-\end{equation}
-
-Le membre gauche est la valeur que $S$ aurait si on l'avait placé au taux
-sans risque pendant $\Delta t$. Le membre droit est l'espérance du prix
-futur (hausse avec probabilité $p^*$, baisse avec probabilité $1-p^*$).
-En simplifiant par $S > 0$ et en isolant $p^*$ :
-
-\begin{align}
-    e^{r \Delta t} &= p^* u + (1 - p^*) d \\
-    e^{r \Delta t} - d &= p^*(u - d) \\
-    p^* &= \frac{e^{r \Delta t} - d}{u - d}
-\end{align}
-
-\subsection*{Condition de validité}
-
-Pour que $p^*$ soit bien une probabilité (comprise entre 0 et 1), il faut
-que :
-
-\begin{equation}
-    d < e^{r \Delta t} < u
-\end{equation}
-
-Cette condition a une interprétation économique directe : \textbf{le
-rendement de l'actif sans risque doit être strictement compris entre le
-rendement d'une baisse et le rendement d'une hausse.} Si ce n'était pas
-le cas, il serait possible de construire un portefeuille garantissant un
-gain certain sans aucun risque ni apport de capital — ce qui est précisément
-une opportunité d'arbitrage. Avec $u = e^{\sigma\sqrt{\Delta t}}$ et
-$d = e^{-\sigma\sqrt{\Delta t}}$, cette condition est toujours satisfaite
-dès que $\sigma > 0$.
-
-\subsection*{Interprétation}
-
-Il est fondamental de comprendre que $p^*$ \textbf{n'est pas} la probabilité
-réelle que le prix monte demain. C'est une probabilité fictive, construite
-uniquement pour garantir la cohérence mathématique du modèle. Sous cette
-mesure, tout actif a le même rendement espéré — le taux sans risque $r$ —
-quelle que soit son risque réel. Cela permet de valoriser l'option sans avoir
-à estimer les préférences pour le risque des investisseurs, ce qui est un
-avantage considérable en pratique~\cite{hull2018}.
-
-\section{Actualisation}
-
-Une fois que l'on dispose de la probabilité risque-neutre $p^*$, on peut
-définir une règle pour calculer la valeur de l'option en tout nœud de l'arbre.
-Cette règle repose sur le principe d'actualisation : la valeur présente d'un
-flux futur est son espérance (sous $p^*$) multipliée par un facteur
-d'escompte.
-
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Facteur d'actualisation}
-
-\medskip
-Le facteur d'actualisation sur une période $\Delta t$ au taux sans risque
-$r$ est :
-
-\begin{equation}
-    \delta = e^{-r \Delta t}
-\end{equation}
-
-Il représente la valeur aujourd'hui d'une unité monétaire reçue dans
-$\Delta t$ ans, placée au taux sans risque.
-\end{minipage}
-}
-
-\medskip
-
-La \textbf{valeur de l'option} au nœud $(i, j)$ est alors l'espérance
-actualisée de sa valeur au nœud suivant :
-
-\begin{equation}
-    V_{i,j} = e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
-              + (1 - p^*) \cdot V_{i+1,\, j} \Bigr]
-    \label{eq:actualisation}
-\end{equation}
-
-où :
-\begin{itemize}[noitemsep]
-    \item $V_{i+1,\, j+1}$ est la valeur de l'option si le marché monte à
-          l'étape suivante,
-    \item $V_{i+1,\, j}$ est la valeur de l'option si le marché baisse à
-          l'étape suivante.
-\end{itemize}
-
-Cette relation de récurrence est le \textbf{cœur du modèle CRR}. Elle dit
-simplement : la valeur de l'option aujourd'hui est la moyenne pondérée (par
-$p^*$ et $1-p^*$) de sa valeur demain, ramenée à aujourd'hui par le facteur
-d'actualisation $e^{-r\Delta t}$.
-
-\section{Rétropropagation}
-
-La \textbf{rétropropagation} (ou \textit{backward induction} en anglais)
-est l'algorithme qui exploite la relation~(\ref{eq:actualisation}) pour
-calculer le prix de l'option. L'idée est simple : puisque la formule
-d'actualisation permet de calculer la valeur en un nœud à partir des
-valeurs des nœuds suivants, on commence par les nœuds terminaux (dont on
-connaît la valeur via le payoff) et on remonte jusqu'à la racine.
-
-\subsection{Cas d'une option européenne}
-
-Pour une option européenne, l'exercice n'est possible qu'à la date
-d'échéance $T$. La valeur en chaque nœud terminal est donc directement
-le payoff de l'option pour le prix $S_{N,j}$ correspondant.
-
-\textbf{Étape 1 — Initialisation aux nœuds terminaux.}
-Pour chaque nœud $j = 0, 1, \ldots, N$ à l'étape $i = N$ :
-
-\begin{equation}
-    V_{N,j} = \text{payoff}(S_{N,j})
-\end{equation}
-
-Pour un call de prix d'exercice $K$, le payoff est :
-\begin{equation}
-    V_{N,j} = \max(S_{N,j} - K,\ 0)
-\end{equation}
-
-Pour un put :
-\begin{equation}
-    V_{N,j} = \max(K - S_{N,j},\ 0)
-\end{equation}
-
-\textbf{Étape 2 — Remontée de l'arbre.}
-On applique ensuite la formule d'actualisation~(\ref{eq:actualisation}) de
-manière récursive, en partant de l'étape $i = N-1$ et en remontant jusqu'à
-$i = 0$ :
-
-\begin{equation}
-    V_{i,j} = e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
-              + (1 - p^*) \cdot V_{i+1,\, j} \Bigr],
-    \quad i = N-1, \ldots, 0,\quad j = 0, \ldots, i
-\end{equation}
-
-\textbf{Résultat.} La valeur $V_{0,0}$ obtenue à la racine de l'arbre
-est le \textbf{prix de l'option européenne}.
-
-\subsection{Cas d'une option américaine}
-
-Pour une option américaine, le détenteur a le droit d'exercer l'option
-à n'importe quel moment avant l'échéance. En chaque nœud intermédiaire
-$(i, j)$, il doit donc choisir entre deux stratégies :
-
-\begin{itemize}
-    \item \textbf{Ne pas exercer} et conserver l'option, dont la valeur
-          est donnée par la formule d'actualisation : c'est la
-          \emph{valeur de continuation}.
-    \item \textbf{Exercer immédiatement} et encaisser le payoff courant
-          $\text{payoff}(S_{i,j})$.
-\end{itemize}
-
-Un investisseur rationnel choisit toujours l'option qui maximise sa valeur.
-La relation de rétropropagation devient donc :
-
-\begin{equation}
-    V_{i,j} = \max\!\Biggl(
-        \underbrace{e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
-                   + (1 - p^*) \cdot V_{i+1,\, j} \Bigr]}_{%
-                   \text{valeur de continuation}},\;\;
-        \underbrace{\text{payoff}(S_{i,j})}_{\text{exercice immédiat}}
-    \Biggr)
-\end{equation}
-
-Cette comparaison est effectuée à \textit{chaque} nœud intermédiaire de
-l'arbre. C'est la seule modification par rapport au cas européen, mais elle
-est fondamentale : elle permet de déterminer automatiquement, pour chaque
-état de marché possible, s'il est optimal d'exercer l'option ou de la
-conserver.
-
-\section{Différence entre option européenne et option américaine}
-
-La différence de valeur entre une option américaine et son équivalent
-européen est appelée la \textbf{prime d'exercice anticipé}. Puisque
-l'option américaine donne un droit supplémentaire (exercice à tout moment),
-elle vaut toujours au moins autant que l'option européenne :
-
-\begin{equation}
-    V^{\text{américaine}} \geq V^{\text{européenne}}
-\end{equation}
-
-Cependant, ce droit supplémentaire n'a pas toujours de valeur :
-
-\begin{itemize}
-    \item Pour un \textbf{call américain sur un actif sans dividende}, il
-    n'est jamais optimal d'exercer avant l'échéance. En effet, vendre
-    l'option sur le marché rapporte toujours plus qu'exercer (car l'option
-    incorpore une valeur temps positive). La prime d'exercice anticipé est
-    donc nulle, et le call américain vaut exactement autant que le call
-    européen. Ce résultat est classique en finance~\cite{hull2018}.
-
-    \item Pour un \textbf{put américain}, en revanche, l'exercice anticipé
-    peut être optimal lorsque l'option est très profondément dans la monnaie
-    (\textit{deep in the money}) et que les taux d'intérêt sont élevés. Dans
-    ce cas, encaisser le payoff immédiatement et placer la somme au taux sans
-    risque peut rapporter plus que de conserver l'option. Le put américain
-    vaut alors strictement plus que son équivalent européen.
-\end{itemize}
-
-Le modèle CRR capture naturellement cette différence grâce au critère de
-maximisation appliqué à chaque nœud lors de la rétropropagation. C'est
-précisément pour cette raison que l'arbre binomial est un outil de référence
-pour la valorisation des options américaines, en l'absence de formule
-analytique fermée de type Black-Scholes.
-\newpage
-
+Le chapitre suivant est consacré à cette étape de calibration. Il présente la méthode utilisée pour récupérer les données de marché, nettoyer les séries de prix, calculer les rendements logarithmiques, estimer la volatilité historique et déterminer les paramètres nécessaires à la mise en œuvre du modèle CRR.
 % ============================================================
 % CHAPITRE 3
 % ============================================================
 
-\chapter{Calibration des paramètres}
+\chapter{Calibration sur données de marché}
 
-\section{Objectif de la calibration}
+Les paramètres introduits dans les chapitres précédents doivent maintenant être déterminés à partir de données réelles. Le modèle CRR nécessite notamment le prix initial du sous-jacent $S_0$, la volatilité annualisée $\sigma$, le taux sans risque $r_f$, la maturité $T$ et le nombre d'étapes $N$.
 
-\section{Choix du sous-jacent}
+Certains de ces paramètres sont directement observables, comme le prix du sous-jacent. D'autres, comme la volatilité, doivent être estimés à partir de l'historique des prix. L'objectif de ce chapitre est donc de décrire la méthode utilisée pour passer d'une série de prix de marché aux paramètres du modèle binomial.
 
-\section{Récupération des données de marché}
+\section{Récupération des données}
+
+La première étape consiste à récupérer l'historique des prix de l'actif sous-jacent étudié. Dans ce rapport, le sous-jacent considéré est une action. On note la série de prix observés
+\[
+S_0, S_1, \ldots, S_n,
+\]
+où $S_i$ désigne le prix de l'actif à la date $i$.
+
+Les données utilisées correspondent aux prix de clôture, ou aux prix de clôture ajustés lorsque ceux-ci sont disponibles. Les prix ajustés sont particulièrement utiles, car ils tiennent compte de certains événements financiers comme les dividendes ou les divisions d'actions.
+
+Cette étape fournit la série chronologique de prix qui servira ensuite au calcul des rendements logarithmiques.
 
 \section{Nettoyage des données}
 
-\section{Prix de clôture}
+Avant d'utiliser les prix récupérés, il est nécessaire de vérifier la qualité des données. Les observations doivent être classées dans l'ordre chronologique, car les rendements sont calculés entre deux dates successives.
+
+Les valeurs manquantes sont retirées afin d'éviter des erreurs dans les calculs. On vérifie également que les prix sont strictement positifs, puisque le calcul des rendements logarithmiques repose sur un logarithme. Après cette étape, la série de prix peut être utilisée pour la suite de la calibration.
 
 \section{Rendements logarithmiques}
 
-\section{Estimation de la volatilité historique}
+À partir de la série de prix nettoyée, on calcule les rendements logarithmiques du sous-jacent. Pour deux dates consécutives $i-1$ et $i$, le rendement est défini par
+\[
+R_i = \ln\left(\frac{S_i}{S_{i-1}}\right).
+\]
+
+On obtient ainsi une série de rendements
+\[
+R_1, R_2, \ldots, R_n.
+\]
+
+Ces rendements décrivent les variations relatives du prix du sous-jacent. Ils seront utilisés pour estimer la volatilité historique.
+
+\section{Estimation de la volatilité}
+
+La volatilité utilisée dans le modèle CRR est estimée à partir des rendements logarithmiques. On commence par calculer le rendement moyen
+\[
+\bar{R} = \frac{1}{n}\sum_{i=1}^{n} R_i.
+\]
+
+L'écart-type empirique des rendements est ensuite donné par
+\[
+\sigma_{\text{jour}} =
+\sqrt{
+\frac{1}{n-1}
+\sum_{i=1}^{n}
+(R_i - \bar{R})^2
+}.
+\]
+
+Lorsque les données sont journalières, cette volatilité doit être annualisée afin d'être cohérente avec les autres paramètres du modèle. En supposant 252 jours de bourse par an, on obtient
+\[
+\sigma = \sigma_{\text{jour}}\sqrt{252}.
+\]
+
+La valeur annualisée $\sigma$ sera utilisée dans le calcul des facteurs de hausse et de baisse.
 
 \section{Choix du taux sans risque}
 
-\section{Calcul du pas de temps}
+Le taux sans risque utilisé dans le modèle est noté $r_f$. Il doit être exprimé sur une base annuelle, comme la volatilité $\sigma$ et la maturité $T$.
 
-\section{Calcul des facteurs $u$ et $d$}
+En pratique, ce taux peut être approché par le rendement d'une obligation d'État dont l'échéance est proche de celle de l'option étudiée. Dans ce rapport, on suppose que $r_f$ reste constant pendant toute la durée de vie de l'option.
 
-\section{Calcul de la probabilité risque-neutre $p^*$}
+\section{Calcul des paramètres CRR}
 
-\newpage
+Une fois $\sigma$, $r_f$, $T$ et $N$ fixés, les paramètres du modèle CRR peuvent être calculés. Le pas de temps vaut
+\[
+\Delta t = \frac{T}{N}.
+\]
+
+Les facteurs de hausse et de baisse sont définis par
+\[
+u = e^{\sigma\sqrt{\Delta t}}
+\qquad \text{et} \qquad
+d = e^{-\sigma\sqrt{\Delta t}}.
+\]
+
+Dans le modèle CRR, on a également $d = 1/u$, ce qui permet d'obtenir un arbre recombiné.
+
+La probabilité risque-neutre est ensuite calculée par
+\[
+p^* = \frac{e^{r_f \Delta t} - d}{u - d}.
+\]
+
+Pour que cette quantité soit bien une probabilité, elle doit vérifier
+\[
+0 < p^* < 1.
+\]
+
+À la fin de la calibration, les paramètres nécessaires à la construction de l'arbre binomial sont donc
+\[
+\Delta t, \quad u, \quad d, \quad p^*.
+\]
+
+Ces valeurs seront utilisées dans l'implémentation informatique du modèle pour calculer le prix de l'option.
 
 % ============================================================
 % CHAPITRE 4
