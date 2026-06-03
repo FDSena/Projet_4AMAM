@@ -88,7 +88,14 @@
 \chapter*{Résumé}
 \addcontentsline{toc}{chapter}{Résumé}
 
-% Résumé à rédiger.
+Ce rapport porte sur la valorisation d'options financières à l'aide du modèle binomial de Cox-Ross-Rubinstein. Ce modèle permet de représenter l'évolution possible du prix d'un actif sous-jacent à l'aide d'un arbre binomial, dans lequel le prix peut augmenter ou diminuer à chaque étape.
+
+Après avoir présenté les notions fondamentales liées aux options financières, le rapport introduit le fonctionnement du modèle CRR et les paramètres nécessaires à son application. Une attention particulière est portée à la calibration de ces paramètres à partir de données de marché, notamment à travers le calcul des rendements logarithmiques, l'estimation de la volatilité historique et le choix du taux sans risque.
+
+L'étude est appliquée à différents sous-jacents, dont le CAC 40 et le Brent, afin d'observer le comportement du modèle dans plusieurs contextes de marché. Le modèle est ensuite implémenté informatiquement pour calculer le prix d'options européennes et américaines, puis analyser l'influence des principaux paramètres sur les résultats obtenus.
+
+Ce travail met en évidence l'intérêt du modèle CRR comme outil de valorisation simple, progressif et interprétable, tout en soulignant ses limites, notamment liées aux hypothèses de volatilité constante, de taux sans risque constant et à la sensibilité de la calibration aux données historiques utilisées.
+
 
 \vspace{1em}
 
@@ -103,7 +110,15 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-% Abstract à rédiger.
+This report focuses on the valuation of financial options using the Cox-Ross-Rubinstein binomial model. This model represents the possible evolution of an underlying asset price through a binomial tree, where the price can either increase or decrease at each time step.
+
+After introducing the main concepts related to financial options, the report presents the CRR model and the parameters required for its implementation. Particular attention is given to the calibration of these parameters from market data, through the computation of logarithmic returns, the estimation of historical volatility and the choice of a risk-free rate.
+
+The study is applied to different underlying assets, including the CAC 40 and Brent, in order to observe the behaviour of the model in several market contexts. The model is then implemented computationally to price European and American options and to analyse the influence of the main parameters on the results obtained.
+
+This work highlights the interest of the CRR model as a simple, progressive and interpretable valuation method, while also pointing out its limitations, especially the assumptions of constant volatility, constant risk-free rate and the sensitivity of the calibration to the historical data used.
+
+
 
 \vspace{1em}
 
@@ -480,14 +495,14 @@ Une volatilité élevée signifie que le prix du sous-jacent peut varier forteme
 Enfin, le taux d'intérêt sans risque intervient dans les modèles de valorisation, car il permet d'actualiser les valeurs futures.
 
 \begin{definition}{Taux sans risque}{taux-sans-risque}
-Le taux sans risque, noté $r$, est le taux de rendement théorique d'un placement considéré comme sans risque sur une période donnée.
+Le taux sans risque, noté $r_f$, est le taux de rendement théorique d'un placement considéré comme sans risque sur une période donnée.
 
 Il est utilisé pour ramener une valeur future à sa valeur actuelle.
 \end{definition}
 
 Le taux sans risque influence donc la valeur actuelle des montants payés ou reçus dans le futur. Dans les modèles de valorisation d'options, il intervient notamment dans l'actualisation des payoffs futurs.
 
-Ainsi, les principaux paramètres utilisés pour valoriser une option sont le prix du sous-jacent $S_t$, le prix d'exercice $K$, la maturité $T$, la volatilité $\sigma$ et le taux sans risque $r$. Ces grandeurs seront utilisées dans la suite du rapport pour construire le modèle binomial de Cox-Ross-Rubinstein.
+Ainsi, les principaux paramètres utilisés pour valoriser une option sont le prix du sous-jacent $S_t$, le prix d'exercice $K$, la maturité $T$, la volatilité $\sigma$ et le taux sans risque $r_f$. Ces grandeurs seront utilisées dans la suite du rapport pour construire le modèle binomial de Cox-Ross-Rubinstein.
 \newpage
 
 % ============================================================
@@ -498,11 +513,11 @@ Ainsi, les principaux paramètres utilisés pour valoriser une option sont le pr
 
 Après avoir présenté les notions financières fondamentales liées aux options, nous pouvons maintenant introduire un premier modèle de valorisation. L'objectif est de déterminer, à partir des paramètres du contrat et du marché, une estimation du prix d'une option.
 
-Dans ce chapitre, nous présentons le modèle binomial de Cox, Ross et Rubinstein, souvent appelé modèle CRR. Ce modèle repose sur une représentation discrète de l'évolution du prix du sous-jacent. À chaque période, le prix peut seulement évoluer selon deux possibilités : une hausse ou une baisse. Cette structure simple permet de construire un arbre de prix et de calculer progressivement la valeur de l'option.
+Dans ce chapitre, nous présentons le modèle binomial de Cox, Ross et Rubinstein, souvent appelé modèle CRR. Ce modèle repose sur une représentation discrète de l'évolution du prix du sous-jacent. À chaque période, le prix peut seulement évoluer selon deux possibilités : une hausse ou une baisse. Cette structure permet de construire un arbre de prix, puis de calculer progressivement la valeur de l'option.
 
 \section{Principe général du modèle binomial}
 
-Le modèle de Cox, Ross et Rubinstein a été introduit en 1979. Il propose une méthode de valorisation des options fondée sur une représentation discrète du temps. Au lieu de supposer que le prix du sous-jacent évolue continûment, le modèle découpe la période de vie de l'option en un nombre fini d'étapes.
+Le modèle de Cox, Ross et Rubinstein propose une méthode de valorisation des options fondée sur une représentation discrète du temps. Au lieu de supposer que le prix du sous-jacent évolue de manière continue, le modèle découpe la durée de vie de l'option en un nombre fini d'étapes.
 
 À chaque étape, le prix du sous-jacent peut évoluer de deux manières. Il peut augmenter selon un facteur de hausse, noté $u$, ou diminuer selon un facteur de baisse, noté $d$.
 
@@ -510,13 +525,13 @@ Le modèle de Cox, Ross et Rubinstein a été introduit en 1979. Il propose une 
 Un modèle binomial est un modèle dans lequel, à chaque période, le prix du sous-jacent ne peut prendre que deux évolutions possibles : une hausse ou une baisse.
 \end{definition}
 
-Dans le modèle CRR, si le prix du sous-jacent vaut $S$ à une date donnée, alors à la période suivante il peut devenir soit
+Dans le modèle CRR, si le prix du sous-jacent vaut $S$ à une date donnée, alors à la période suivante il peut devenir
 \[
-S u,
+Su
 \]
-en cas de hausse, soit
+en cas de hausse, ou
 \[
-S d,
+Sd
 \]
 en cas de baisse.
 
@@ -535,37 +550,27 @@ Un arbre binomial est une structure qui représente les différentes évolutions
 
 L'intérêt du modèle binomial est qu'il permet de calculer le prix d'une option de manière progressive. On commence par déterminer les valeurs possibles du sous-jacent à la maturité, puis on calcule les payoffs associés. Ensuite, on remonte l'arbre jusqu'à la date initiale afin d'obtenir le prix de l'option aujourd'hui.
 
+Avant de construire cet arbre plus précisément, il est nécessaire de présenter les hypothèses sur lesquelles repose le modèle CRR.
+
 \section{Hypothèses du modèle}
 
-Comme tout modèle financier, le modèle CRR repose sur plusieurs hypothèses simplificatrices. Ces hypothèses permettent d'obtenir un cadre mathématique clair pour valoriser les options.
+Comme tout modèle financier, le modèle CRR repose sur plusieurs hypothèses simplificatrices. Ces hypothèses permettent d'obtenir un cadre mathématique clair pour valoriser les options, même si elles ne décrivent pas parfaitement la réalité des marchés.
 
-\begin{definition}{Marché sans friction}{marche-sans-friction}
-Un marché sans friction est un marché dans lequel on suppose qu'il n'existe pas de coûts de transaction, pas de taxes, et que les actifs peuvent être achetés ou vendus librement.
-\end{definition}
+On suppose d'abord que le marché est sans friction. Cela signifie que l'on néglige les coûts de transaction, les taxes et les contraintes liées à l'achat ou à la vente des actifs. Cette hypothèse simplifie les calculs et permet de se concentrer sur la logique de valorisation.
 
-Dans le cadre du modèle CRR, on suppose d'abord que le marché est sans friction. Cette hypothèse simplifie les calculs, car elle permet de ne pas tenir compte des frais liés aux achats et ventes d'actifs.
+Le taux sans risque, noté $r_f$, est supposé constant pendant toute la durée de vie de l'option. Cette hypothèse permet d'utiliser un même taux pour actualiser les valeurs futures dans l'arbre binomial.
 
-On suppose également que le taux sans risque reste constant pendant toute la durée de vie de l'option. Pour éviter toute confusion avec les rendements du sous-jacent, on note ce taux $r_f$.
+Le modèle suppose aussi que la volatilité du sous-jacent, notée $\sigma$, reste constante sur la période étudiée. Cela signifie que l'intensité des variations du prix du sous-jacent ne change pas au cours du temps.
 
-\begin{definition}{Taux sans risque constant}{taux-sans-risque-constant}
-Le taux sans risque est supposé constant lorsque sa valeur ne change pas pendant toute la période étudiée.
-
-Dans le modèle CRR, ce taux est noté $r_f$.
-\end{definition}
-
-Le modèle suppose aussi que la volatilité du sous-jacent est constante. Cette hypothèse signifie que l'intensité des variations du prix de l'actif ne change pas au cours du temps.
-
-\begin{definition}{Volatilité constante}{volatilite-constante}
-La volatilité est dite constante lorsque le paramètre $\sigma$ reste identique pendant toute la durée de vie de l'option.
-\end{definition}
-
-Enfin, le modèle repose sur l'absence d'opportunité d'arbitrage. Cette hypothèse est fondamentale, car elle garantit qu'il n'est pas possible de réaliser un profit certain sans prendre de risque.
+Enfin, le modèle repose sur l'absence d'opportunité d'arbitrage. Cette hypothèse est fondamentale, car elle garantit la cohérence du prix obtenu.
 
 \begin{definition}{Absence d'opportunité d'arbitrage}{absence-arbitrage}
 L'absence d'opportunité d'arbitrage signifie qu'il est impossible de construire une stratégie permettant d'obtenir un gain certain sans risque et sans investissement initial.
 \end{definition}
 
-Ces hypothèses ne décrivent pas parfaitement la réalité des marchés financiers. Cependant, elles permettent de construire un modèle simple, cohérent et utilisable pour comprendre les mécanismes de valorisation des options.
+Ces hypothèses permettent de construire un modèle simple et cohérent. Elles fixent le cadre dans lequel le prix du sous-jacent sera représenté de manière discrète.
+
+Il faut maintenant préciser comment la durée de vie de l'option est découpée en plusieurs étapes.
 
 \section{Discrétisation du temps}
 
@@ -587,7 +592,7 @@ Ainsi, plus le nombre d'étapes $N$ est grand, plus le pas de temps $\Delta t$ e
 
 À l'étape $i$, le temps correspondant est donné par
 \[
-t_i = i \Delta t,
+t_i = i\Delta t,
 \]
 avec
 \[
@@ -595,6 +600,8 @@ i = 0,1,\ldots,N.
 \]
 
 L'étape $i=0$ correspond à la date initiale, tandis que l'étape $i=N$ correspond à la maturité de l'option.
+
+Une fois ce découpage temporel défini, on peut construire l'arbre des prix du sous-jacent en associant à chaque étape les mouvements possibles de hausse et de baisse.
 
 \section{Construction de l'arbre des prix}
 
@@ -635,16 +642,101 @@ On remarque que
 d = \frac{1}{u}.
 \]
 
-Cette relation permet d'obtenir un arbre recombiné. Cela signifie qu'une hausse suivie d'une baisse conduit au même prix qu'une baisse suivie d'une hausse :
+Cette relation permet d'obtenir un arbre recombiné.
+
+L'arbre permet donc de représenter les différents prix possibles du sous-jacent. Cependant, pour valoriser l'option, il faut encore associer une probabilité aux mouvements de hausse et de baisse.
+
+\section{Probabilité risque-neutre}
+
+Une fois l'arbre des prix construit, il faut déterminer comment calculer la valeur de l'option à partir des différents scénarios possibles. Le modèle CRR utilise pour cela une probabilité particulière, appelée probabilité risque-neutre.
+
+\begin{definition}{Probabilité risque-neutre}{probabilite-risque-neutre}
+La probabilité risque-neutre, notée $p^*$, est la probabilité de hausse utilisée dans le modèle CRR pour valoriser une option.
+
+Elle est définie par
 \[
-S_0 u d = S_0 d u.
+p^* = \frac{e^{r_f\Delta t} - d}{u-d},
+\]
+où $r_f$ désigne le taux sans risque, $\Delta t$ le pas de temps, $u$ le facteur de hausse et $d$ le facteur de baisse.
+\end{definition}
+
+La probabilité $p^*$ ne correspond pas nécessairement à la probabilité réelle que le prix du sous-jacent augmente. Il s'agit d'une probabilité utilisée pour assurer la cohérence du modèle avec l'absence d'opportunité d'arbitrage.
+
+La probabilité de baisse associée est
+\[
+1-p^*.
 \]
 
-Cette propriété est importante, car elle réduit fortement le nombre de nœuds à calculer dans l'arbre.
+Pour que le modèle soit cohérent, la probabilité risque-neutre doit vérifier
+\[
+0 < p^* < 1.
+\]
 
-Le modèle CRR repose donc sur une construction discrète du prix du sous-jacent à partir de paramètres précis, notamment le pas de temps $\Delta t$, les facteurs de hausse et de baisse $u$ et $d$, ainsi que la probabilité risque-neutre $p^*$. Ces paramètres ne sont pas choisis arbitrairement : ils doivent être déterminés à partir des caractéristiques de l'option et des données de marché disponibles.
+Cette condition signifie que la probabilité utilisée dans le modèle est bien comprise entre une baisse et une hausse possibles du prix du sous-jacent.
 
-Le chapitre suivant est consacré à cette étape de calibration. Il présente la méthode utilisée pour récupérer les données de marché, nettoyer les séries de prix, calculer les rendements logarithmiques, estimer la volatilité historique et déterminer les paramètres nécessaires à la mise en œuvre du modèle CRR.
+Une fois cette probabilité définie, on peut l'utiliser pour calculer la valeur de l'option à chaque nœud de l'arbre.
+
+\section{Actualisation et valeur de l'option dans l'arbre}
+
+Après avoir défini la probabilité risque-neutre, on peut calculer la valeur de l'option à chaque nœud de l'arbre. Cette valeur dépend des valeurs possibles de l'option à l'étape suivante.
+
+\begin{definition}{Valeur de l'option au nœud de l'arbre}{valeur-option-noeud}
+On note $V_{i,j}$ la valeur de l'option au nœud $(i,j)$ de l'arbre binomial.
+
+L'indice $i$ désigne l'étape temporelle, tandis que l'indice $j$ désigne le nombre de hausses observées depuis la date initiale.
+\end{definition}
+
+Dans le cas d'une option européenne, la valeur de l'option est d'abord connue à la maturité grâce au payoff. On remonte ensuite l'arbre progressivement jusqu'à la date initiale.
+
+Pour un nœud $(i,j)$, la valeur de l'option est calculée par
+\[
+V_{i,j}
+=
+e^{-r_f\Delta t}
+\left[
+p^* V_{i+1,j+1}
++
+(1-p^*)V_{i+1,j}
+\right].
+\]
+
+Le terme $e^{-r_f\Delta t}$ est le facteur d'actualisation sur une période. Il permet de ramener à la date actuelle une valeur attendue à l'étape suivante.
+
+Cette relation permet de calculer le prix de l'option par remontée de l'arbre. Le prix obtenu au nœud initial,
+\[
+V_{0,0},
+\]
+correspond à la valeur de l'option à la date initiale.
+
+\section{Cas des options européennes et américaines}
+
+La méthode de remontée de l'arbre dépend du type d'option considéré. Pour une option européenne, l'exercice n'est possible qu'à la maturité. La valeur de l'option est donc calculée à partir des payoffs terminaux, puis par actualisation jusqu'à la date initiale.
+
+Pour une option américaine, l'exercice peut avoir lieu avant la maturité. À chaque nœud de l'arbre, il faut donc comparer la valeur de continuation avec la valeur obtenue en cas d'exercice immédiat.
+
+Dans le cas américain, la valeur de l'option au nœud $(i,j)$ s'écrit
+\[
+V_{i,j}
+=
+\max\left(
+e^{-r_f\Delta t}
+\left[
+p^*V_{i+1,j+1}
++
+(1-p^*)V_{i+1,j}
+\right],
+\Pi(S_{i,j})
+\right).
+\]
+
+Cette formule traduit le fait que le détenteur choisit toujours la solution la plus avantageuse entre conserver l'option et l'exercer immédiatement.
+
+Le modèle CRR permet donc de traiter aussi bien les options européennes que les options américaines. Cette souplesse constitue l'un de ses principaux intérêts, notamment lorsque l'exercice anticipé doit être pris en compte.
+
+Le modèle CRR repose finalement sur une construction discrète du prix du sous-jacent à partir de paramètres précis, particulièrement le pas de temps $\Delta t$, les facteurs de hausse et de baisse $u$ et $d$, la probabilité risque-neutre $p^*$, ainsi que la valeur de l'option aux différents nœuds de l'arbre $V_{i,j}$.
+
+Le chapitre suivant est consacré à l'étape de calibration. Il présente la méthode utilisée pour récupérer les données de marché, nettoyer les séries de prix, calculer les rendements logarithmiques, estimer la volatilité historique et déterminer les paramètres nécessaires à la mise en œuvre du modèle CRR.
+
 % ============================================================
 % CHAPITRE 3
 % ============================================================
