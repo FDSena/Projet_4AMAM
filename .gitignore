@@ -26,3 +26,13 @@ Thumbs.db
 
 # Data (optionnel si vous ne voulez pas push)
 data/
+
+# Report
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.out
+*.log
+*.toc
