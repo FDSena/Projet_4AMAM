@@ -1,0 +1,116 @@
+\babel@toc {french}{}\relax 
+\contentsline {chapter}{Résumé}{3}{chapter*.2}%
+\contentsline {chapter}{Abstract}{4}{chapter*.3}%
+\contentsline {chapter}{Abréviations et notations}{4}{chapter*.4}%
+\contentsline {section}{Abréviations et acronymes}{4}{section*.5}%
+\contentsline {section}{Notations}{4}{section*.6}%
+\contentsline {chapter}{Introduction}{5}{chapter*.7}%
+\contentsline {chapter}{\numberline {1}Cadre théorique financier}{6}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Définition d'une option financière}{6}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Call et put}{8}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Payoff}{9}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Options européennes et américaines}{10}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Paramètres influençant le prix d'une option}{11}{section.1.5}%
+\contentsline {chapter}{\numberline {2}Modèle de Cox, Ross et Rubinstein}{13}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Principe général du modèle binomial}{13}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Hypothèses du modèle}{13}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Discrétisation du temps}{14}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Construction de l'arbre des prix}{15}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Prix initial du sous-jacent}{15}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Facteur de hausse}{15}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Facteur de baisse}{16}{subsection.2.4.3}%
+\contentsline {section}{\numberline {2.5}Formule des prix dans l'arbre}{16}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Probabilité risque-neutre}{17}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Actualisation}{18}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Rétropropagation}{19}{section.2.8}%
+\contentsline {subsection}{\numberline {2.8.1}Cas d'une option européenne}{19}{subsection.2.8.1}%
+\contentsline {subsection}{\numberline {2.8.2}Cas d'une option américaine}{19}{subsection.2.8.2}%
+\contentsline {section}{\numberline {2.9}Différence entre option européenne et option américaine}{20}{section.2.9}%
+\contentsline {chapter}{\numberline {3}Calibration des paramètres}{21}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Objectif de la calibration}{21}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Choix du sous-jacent}{21}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Récupération des données de marché}{21}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Nettoyage des données}{21}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Prix de clôture}{21}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Rendements logarithmiques}{21}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Estimation de la volatilité historique}{21}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Choix du taux sans risque}{21}{section.3.8}%
+\contentsline {section}{\numberline {3.9}Calcul du pas de temps}{21}{section.3.9}%
+\contentsline {section}{\numberline {3.10}Calcul des facteurs $u$ et $d$}{21}{section.3.10}%
+\contentsline {section}{\numberline {3.11}Calcul de la probabilité risque-neutre $p^*$}{21}{section.3.11}%
+\contentsline {chapter}{\numberline {4}Implémentation informatique}{22}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Architecture générale du projet}{23}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Organisation des fichiers}{23}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Fichier \texttt {option.py}}{23}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Fichier \texttt {market\_data.py}}{23}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Fichier \texttt {calibration.py}}{23}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Fichier \texttt {crr.py}}{23}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Fichier \texttt {backtester.py}}{23}{subsection.4.2.5}%
+\contentsline {section}{\numberline {4.3}Classe \texttt {Option}}{23}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Attributs de la classe}{23}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Méthode de calcul du payoff}{23}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Vérification des paramètres}{23}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}Module de données de marché}{23}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Téléchargement des données}{23}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Nettoyage des données}{23}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Calcul des rendements}{23}{subsection.4.4.3}%
+\contentsline {section}{\numberline {4.5}Module de calibration}{23}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Estimation de la volatilité}{23}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Gestion du taux sans risque}{23}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Calcul des paramètres du modèle}{23}{subsection.4.5.3}%
+\contentsline {section}{\numberline {4.6}Module CRR}{23}{section.4.6}%
+\contentsline {subsection}{\numberline {4.6.1}Construction de l’arbre binomial}{23}{subsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.6.2}Calcul des payoffs terminaux}{23}{subsection.4.6.2}%
+\contentsline {subsection}{\numberline {4.6.3}Pricing européen}{23}{subsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.6.4}Pricing américain}{23}{subsection.4.6.4}%
+\contentsline {section}{\numberline {4.7}Module de backtest}{23}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}Comparaison des prix}{23}{subsection.4.7.1}%
+\contentsline {subsection}{\numberline {4.7.2}Calcul des erreurs}{23}{subsection.4.7.2}%
+\contentsline {subsection}{\numberline {4.7.3}Métriques d’évaluation}{23}{subsection.4.7.3}%
+\contentsline {chapter}{\numberline {5}Expérimentations numériques}{24}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Objectif des expérimentations}{24}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Paramètres utilisés}{24}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Choix du sous-jacent}{24}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Choix du strike}{24}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Choix de la maturité}{24}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}Choix du nombre d’étapes}{24}{subsection.5.2.4}%
+\contentsline {section}{\numberline {5.3}Exemple d’arbre binomial}{24}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Pricing d’un call européen}{24}{section.5.4}%
+\contentsline {section}{\numberline {5.5}Pricing d’un put européen}{24}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Pricing d’une option américaine}{24}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Comparaison entre options européennes et américaines}{24}{section.5.7}%
+\contentsline {section}{\numberline {5.8}Influence du nombre d’étapes}{24}{section.5.8}%
+\contentsline {section}{\numberline {5.9}Influence de la volatilité}{24}{section.5.9}%
+\contentsline {section}{\numberline {5.10}Influence du strike}{24}{section.5.10}%
+\contentsline {section}{\numberline {5.11}Analyse des résultats obtenus}{24}{section.5.11}%
+\contentsline {chapter}{\numberline {6}Backtest et validation du modèle}{25}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Objectif du backtest}{25}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Méthodologie de validation}{25}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Fenêtre d’estimation}{25}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Recalibration des paramètres}{25}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Comparaison entre prix prédit et prix de référence}{25}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Erreur absolue}{25}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Erreur relative}{25}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Mean Absolute Error}{25}{section.6.8}%
+\contentsline {section}{\numberline {6.9}Root Mean Squared Error}{25}{section.6.9}%
+\contentsline {section}{\numberline {6.10}Analyse de la stabilité du modèle}{25}{section.6.10}%
+\contentsline {section}{\numberline {6.11}Interprétation des résultats}{25}{section.6.11}%
+\contentsline {chapter}{\numberline {7}Limites et perspectives}{26}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Limites du modèle CRR}{26}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Hypothèse de volatilité constante}{26}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Hypothèse de taux sans risque constant}{26}{subsection.7.1.2}%
+\contentsline {subsection}{\numberline {7.1.3}Discrétisation du temps}{26}{subsection.7.1.3}%
+\contentsline {section}{\numberline {7.2}Limites liées aux données réelles}{26}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Limites liées à la calibration}{26}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Limites liées à l’implémentation}{26}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Améliorations possibles}{26}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}Utilisation d’une volatilité implicite}{26}{subsection.7.5.1}%
+\contentsline {subsection}{\numberline {7.5.2}Comparaison avec le modèle de Black-Scholes}{26}{subsection.7.5.2}%
+\contentsline {subsection}{\numberline {7.5.3}Augmentation du nombre d’étapes}{26}{subsection.7.5.3}%
+\contentsline {subsection}{\numberline {7.5.4}Utilisation de données d’options réelles}{26}{subsection.7.5.4}%
+\contentsline {chapter}{Conclusion et perspectives}{27}{chapter*.12}%
+\contentsline {chapter}{Bibliographie}{28}{chapter*.12}%
+\contentsline {chapter}{Annexes}{28}{chapter*.13}%
+\contentsline {section}{Annexe A : Code Python}{28}{section*.14}%
+\contentsline {section}{Annexe B : Résultats complémentaires}{28}{section*.15}%
+\contentsline {section}{Annexe C : Figures supplémentaires}{28}{section*.16}%

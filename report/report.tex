@@ -13,24 +13,33 @@
 \usepackage{fancybox}                           % Encadrés
 \usepackage{fancyhdr}                           % En-têtes et pieds de page
 \usepackage{float}                              % Placement des figures
-\usepackage{fontspec}                           % Police personnalisée
 \usepackage[a4paper, margin=2.5cm]{geometry}    % Marges
 \usepackage{graphicx}                           % Images
 \usepackage{hyperref}                           % Liens
 \usepackage{indentfirst}                        % Indentation du premier paragraphe
 \usepackage{makecell}                           % Cellules de tableau
-\usepackage{microtype}                          % Typographie
+\usepackage[protrusion=true, expansion=false]{microtype}                        % Typographie
 \usepackage{pdfpages}                           % Inclusion de PDF
 \usepackage{setspace}                           % Interligne
 \usepackage{siunitx}                            % Unités
 \usepackage{soul}                               % Surlignage
 \usepackage{tocloft}                            % Table des matières
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[most]{tcolorbox}
+\newtcbtheorem[number within=chapter]{definition}{Définition}%
+{colback=gray!5,
+ colframe=black!60,
+ fonttitle=\bfseries,
+ coltitle=black,
+ sharp corners,
+ boxrule=0.5pt,
+ breakable}{def}
 
 % ============================================================
 % CONFIGURATION GÉNÉRALE
 % ============================================================
 
-\setmainfont{Verdana}
 \singlespacing
 \setlength{\parskip}{0.5em}
 
@@ -196,28 +205,289 @@
 
 \chapter{Cadre théorique financier}
 
-\section{Définition d’une option financière}
+Ce chapitre présente les concepts fondamentaux nécessaires à la compréhension des options financières et de leur valorisation. Avant d’aborder les modèles numériques utilisés pour calculer le prix d’une option, il est important de définir précisément les notions financières de base telles que l'actif sous-jacent, l'option financière, le prix d'exercice, la maturité, le payoff, l'option européenne et l'option américaine.
 
-\section{Actif sous-jacent}
+L’objectif de ce chapitre est donc de construire progressivement le cadre théorique du rapport. Nous commencerons par présenter la notion d’option financière, puis nous distinguerons les deux grands types d’options classiques dont le call et le put. Nous introduirons ensuite la notion de payoff, qui permet de décrire le gain obtenu à l’échéance d’une option. Enfin, nous présenterons les principales caractéristiques influençant le prix d’une option, comme le prix du sous-jacent, la volatilité, le taux d’intérêt, la maturité et le prix d’exercice.
 
-\section{Prix d’exercice et maturité}
+Ces définitions seront ensuite utilisées dans les chapitres suivants pour mettre en place le modèle binomial de Cox-Ross-Rubinstein et calibrer ses paramètres à partir de données de marché.
 
-\section{Option call}
+\section{Définition d'une option financière}
 
-\section{Option put}
+Les options financières appartiennent à la famille des produits dérivés. Avant de définir précisément une option financière, il est donc nécessaire d'introduire d'abord la notion de produit dérivé, puis celle d'actif sous-jacent.
 
-\section{Payoff d’une option}
+\begin{definition}{Produit dérivé}{produit-derive}
+Un produit dérivé est un instrument financier dont la valeur dépend de l'évolution d'un autre actif, appelé actif sous-jacent.
+\end{definition}
 
-\subsection{Payoff d’un call}
+\begin{definition}{Actif sous-jacent}{actif-sous-jacent}
+Un actif sous-jacent est l'actif financier sur lequel repose un produit dérivé.
 
-\subsection{Payoff d’un put}
+Il peut s'agir par exemple :
+\begin{itemize}
+    \item d'une action ;
+    \item d'un indice boursier ;
+    \item d'une devise ;
+    \item d'une matière première ;
+    \item d'une obligation.
+\end{itemize}
 
-\section{Option européenne}
+On note généralement le prix de l'actif sous-jacent à la date $t$ par :
+\[
+S_t.
+\]
+\end{definition}
 
-\section{Option américaine}
+Dans le cadre de ce rapport, l'actif sous-jacent considéré sera principalement une action. L'évolution de son prix au cours du temps jouera un rôle central dans la valorisation de l'option.
 
-\section{Paramètres influençant le prix d’une option}
+Une option financière est un contrat portant sur un actif sous-jacent. Elle donne à son détenteur un droit, mais pas une obligation. Ce droit peut être un droit d'achat ou un droit de vente.
 
+\begin{definition}{Option financière}{option-financiere}
+Une option financière est un contrat qui donne à son détenteur le droit, mais non l'obligation, d'acheter ou de vendre un actif sous-jacent à un prix fixé à l'avance, à une date donnée ou pendant une période donnée.
+\end{definition}
+
+Le prix fixé à l'avance dans le contrat est appelé prix d'exercice.
+
+\begin{definition}{Prix d'exercice}{prix-exercice}
+Le prix d'exercice, noté $K$, est le prix auquel le détenteur de l'option peut acheter ou vendre l'actif sous-jacent si l'option est exercée.
+\end{definition}
+
+Une option se distingue donc d'un contrat classique par le fait que son détenteur possède un droit, mais n'est jamais obligé de l'exercer. Cette propriété est essentielle : si l'exercice de l'option est défavorable, le détenteur peut choisir de ne pas exercer son droit.
+
+Le contrat d'option est également associé à une date limite. Cette date est appelée maturité ou échéance.
+
+\begin{definition}{Maturité}{maturite}
+La maturité, notée $T$, désigne la date d'échéance du contrat d'option.
+
+À cette date, selon le type d'option considéré, le détenteur peut exercer son droit d'achat ou de vente.
+\end{definition}
+
+Une option financière est donc principalement caractérisée par les éléments suivants :
+\begin{itemize}
+   \item $S_t$, le prix du sous-jacent à la date $t$ ;
+   \item $K$, le prix d'exercice ;
+   \item $T$, la maturité de l'option.
+\end{itemize}
+
+Enfin, pour obtenir ce droit, l'acheteur de l'option doit payer un prix. Ce prix est appelé prime de l'option.
+
+\begin{definition}{Prime d'une option}{prime-option}
+La prime d'une option est le prix payé par l'acheteur pour obtenir le droit associé au contrat d'option.
+
+Elle représente également le prix de marché de l'option à la date considérée.
+\end{definition}
+
+Dans la suite du rapport, l'objectif sera de comprendre comment déterminer cette prime à l'aide de modèles mathématiques. Pour cela, il faudra d'abord distinguer les deux types fondamentaux d'options : les options d'achat, appelées \textit{calls}, et les options de vente, appelées \textit{puts}.
+
+%%% CALL ET PUT %%%
+
+\section{Call et put}
+
+Les options financières sont des instruments échangés sur les marchés financiers. Avant de distinguer les deux formes principales d'options, il est utile de préciser brièvement ce que l'on entend par marché financier.
+
+\begin{definition}{Marché financier}{marche-financier}
+Un marché financier est un lieu, physique ou électronique, sur lequel des agents économiques peuvent acheter et vendre des actifs financiers, comme des actions, des obligations, des devises ou des produits dérivés.
+\end{definition}
+
+Dans ce cadre, les options financières permettent aux investisseurs de prendre position sur l'évolution future d'un actif sous-jacent. Une option peut donner un droit d'achat ou un droit de vente sur cet actif. Ces deux cas correspondent respectivement au \textit{call} et au \textit{put}.
+
+\begin{definition}{Option d'achat ou call}{call}
+Une option d'achat, appelée \textit{call}, est une option qui donne à son détenteur le droit, mais non l'obligation, d'acheter un actif sous-jacent à un prix fixé à l'avance, appelé prix d'exercice.
+
+On note $K$ le prix d'exercice et $S_T$ le prix du sous-jacent à la maturité $T$. Le call présente un intérêt pour son détenteur lorsque
+\[
+S_T > K.
+\]
+Dans cette situation, l'acheteur du call peut acheter l'actif au prix $K$, alors que sa valeur de marché est $S_T$.
+\end{definition}
+
+Le call est donc associé à une anticipation de hausse du prix du sous-jacent. Lorsque le prix de marché devient supérieur au prix d'exercice, l'exercice de l'option permet d'acheter l'actif à un prix inférieur à sa valeur observée sur le marché. En revanche, si $S_T \leq K$, l'exercice n'est pas avantageux, car l'actif peut être acheté directement sur le marché à un prix inférieur ou égal à $K$.
+
+\begin{definition}{Option de vente ou put}{put}
+Une option de vente, appelée \textit{put}, est une option qui donne à son détenteur le droit, mais non l'obligation, de vendre un actif sous-jacent à un prix fixé à l'avance, appelé prix d'exercice.
+
+On note $K$ le prix d'exercice et $S_T$ le prix du sous-jacent à la maturité $T$. Le put présente un intérêt pour son détenteur lorsque
+\[
+S_T < K.
+\]
+Dans cette situation, l'acheteur du put peut vendre l'actif au prix $K$, alors que sa valeur de marché est $S_T$.
+\end{definition}
+
+Le put est donc associé à une anticipation de baisse du prix du sous-jacent. Lorsque le prix de marché devient inférieur au prix d'exercice, l'exercice de l'option permet de vendre l'actif à un prix supérieur à sa valeur observée sur le marché. En revanche, si $S_T \geq K$, l'exercice n'est pas avantageux, car l'actif peut être vendu directement sur le marché à un prix supérieur ou égal à $K$.
+
+Ainsi, le call et le put reposent sur deux situations opposées. Le call devient intéressant lorsque le prix du sous-jacent dépasse le prix d'exercice, tandis que le put devient intéressant lorsque le prix du sous-jacent devient inférieur au prix d'exercice. Cette distinction permettra, dans la section suivante, d'introduire la notion de payoff, c'est-à-dire le gain obtenu à la maturité selon l'évolution du prix du sous-jacent.
+
+%%%% PAYOFF %%%%
+
+\section{Payoff}
+
+Après avoir distingué les deux types fondamentaux d'options, le call et le put, il est nécessaire d'introduire la notion de payoff. Cette notion permet de mesurer ce que rapporte une option à sa maturité, avant de prendre en compte le prix payé pour l'acheter.
+
+\begin{definition}{Payoff d'une option}{payoff-option}
+Le payoff d'une option désigne le gain obtenu par le détenteur de l'option à la maturité $T$, en fonction du prix final du sous-jacent $S_T$ et du prix d'exercice $K$.
+
+Il ne tient pas compte de la prime payée pour acheter l'option.
+\end{definition}
+
+Le payoff dépend donc de la position relative entre le prix du sous-jacent à la maturité, noté $S_T$, et le prix d'exercice, noté $K$. Si l'exercice de l'option est avantageux, le payoff est positif. Dans le cas contraire, le détenteur choisit de ne pas exercer son droit, et le payoff est nul.
+
+Pour une option d'achat, le détenteur exerce son droit seulement lorsque le prix du sous-jacent est supérieur au prix d'exercice. Le payoff d'un call est donc donné par la quantité positive entre $S_T - K$ et $0$.
+
+\begin{definition}{Payoff d'un call}{payoff-call}
+Le payoff d'un call à la maturité $T$ est donné par
+\[
+\Pi_{\text{call}}(S_T) = \max(S_T - K, 0).
+\]
+
+Ainsi, si $S_T > K$, le payoff vaut
+\[
+\Pi_{\text{call}}(S_T) = S_T - K.
+\]
+
+Si $S_T \leq K$, le payoff vaut
+\[
+\Pi_{\text{call}}(S_T) = 0.
+\]
+\end{definition}
+
+Cette formule traduit directement le fonctionnement économique du call. Lorsque le prix du sous-jacent dépasse le prix d'exercice, l'acheteur peut acheter l'actif à un prix inférieur à sa valeur de marché. L'écart $S_T - K$ représente alors le gain obtenu à l'exercice. Lorsque $S_T \leq K$, l'exercice n'est pas avantageux, et le détenteur laisse l'option expirer.
+
+Pour une option de vente, la situation est inverse. Le détenteur exerce son droit lorsque le prix du sous-jacent est inférieur au prix d'exercice. Le payoff d'un put est donc donné par la quantité positive entre $K - S_T$ et $0$.
+
+\begin{definition}{Payoff d'un put}{payoff-put}
+Le payoff d'un put à la maturité $T$ est donné par
+\[
+\Pi_{\text{put}}(S_T) = \max(K - S_T, 0).
+\]
+
+Ainsi, si $S_T < K$, le payoff vaut
+\[
+\Pi_{\text{put}}(S_T) = K - S_T.
+\]
+
+Si $S_T \geq K$, le payoff vaut
+\[
+\Pi_{\text{put}}(S_T) = 0.
+\]
+\end{definition}
+
+Cette formule exprime l'intérêt économique du put. Lorsque le prix du sous-jacent devient inférieur au prix d'exercice, l'acheteur du put peut vendre l'actif au prix $K$, alors que sa valeur de marché est plus faible. L'écart $K - S_T$ représente alors le gain obtenu à l'exercice. Lorsque $S_T \geq K$, il n'est pas avantageux d'exercer l'option, et le payoff est nul.
+
+Il est important de distinguer le payoff du profit réel de l'investisseur.
+
+\begin{definition}{Profit d'une option}{profit-option}
+Le profit d'une option correspond au payoff diminué de la prime payée pour acheter l'option.
+
+Si la prime est notée $C_0$ pour un call, alors le profit du call est donné par
+\[
+\Pi_{\text{call}}(S_T) - C_0.
+\]
+
+Si la prime est notée $P_0$ pour un put, alors le profit du put est donné par
+\[
+\Pi_{\text{put}}(S_T) - P_0.
+\]
+\end{definition}
+
+Le payoff mesure uniquement le gain obtenu à la maturité grâce à l'exercice de l'option. Le profit, lui, prend aussi en compte la prime payée au départ pour acheter cette option.
+
+Cette distinction entre payoff et profit est importante, car elle permet de séparer le gain obtenu à l'exercice de l'option du coût initial payé pour acquérir ce droit. Dans la suite, nous nous intéresserons également au moment auquel ce droit peut être exercé. Cette question conduit à distinguer les options européennes et les options américaines.
+
+\section{Options européennes et américaines}
+
+Après avoir défini le payoff d'une option, il est nécessaire de préciser à quel moment le détenteur peut exercer son droit. En effet, toutes les options ne possèdent pas les mêmes règles d'exercice. On distingue principalement les options européennes et les options américaines.
+
+\begin{definition}{Option européenne}{option-europeenne}
+Une option européenne est une option qui ne peut être exercée qu'à sa date de maturité $T$.
+
+Ainsi, le détenteur de l'option prend sa décision uniquement à l'échéance, en comparant le prix du sous-jacent $S_T$ au prix d'exercice $K$.
+\end{definition}
+
+Dans le cas d'une option européenne, le détenteur ne peut donc pas exercer son droit avant la date $T$. Même si l'option devient avantageuse avant l'échéance, il doit attendre la maturité pour décider s'il exerce ou non son droit.
+
+Pour un call européen, l'exercice est intéressant à la maturité lorsque
+\[
+S_T > K.
+\]
+Pour un put européen, l'exercice est intéressant à la maturité lorsque
+\[
+S_T < K.
+\]
+
+\begin{definition}{Option américaine}{option-americaine}
+Une option américaine est une option qui peut être exercée à tout moment entre la date d'achat du contrat et sa maturité $T$.
+\end{definition}
+
+Contrairement à l'option européenne, l'option américaine donne donc plus de flexibilité à son détenteur. Celui-ci peut choisir d'exercer son droit avant l'échéance si cela lui semble avantageux. Cette liberté supplémentaire rend généralement la valorisation d'une option américaine plus complexe, car il faut étudier la possibilité d'exercice à chaque date avant la maturité.
+
+On peut résumer la différence principale de la manière suivante. Une option européenne ne peut être exercée qu'à la date finale $T$, tandis qu'une option américaine peut être exercée à n'importe quelle date avant ou à la maturité.
+
+Cette distinction est importante, car le moment d'exercice influence la valeur de l'option. Cependant, le type d'exercice n'est pas le seul élément à prendre en compte. Le prix d'une option dépend également de plusieurs paramètres financiers, comme le prix du sous-jacent, le prix d'exercice, la maturité, la volatilité ou encore le taux d'intérêt. Ces paramètres sont présentés dans la section suivante.
+%%% PARAMETRES INFLUENCANT LE PRIX D'UNE OPTION %%%
+\section{Paramètres influençant le prix d'une option}
+
+Le prix d'une option, aussi appelé prime, dépend de plusieurs paramètres financiers. Certains ont déjà été introduits précédemment, comme le prix du sous-jacent $S_t$, le prix d'exercice $K$ et la maturité $T$. Ces grandeurs jouent un rôle central dans la valorisation, car elles déterminent les conditions dans lesquelles l'option peut devenir avantageuse pour son détenteur.
+
+Le prix du sous-jacent $S_t$ influence directement la valeur de l'option. Pour un call, une hausse du prix du sous-jacent tend à augmenter la valeur de l'option, car le droit d'acheter l'actif au prix $K$ devient plus intéressant. À l'inverse, pour un put, une baisse du prix du sous-jacent tend à augmenter la valeur de l'option, car le droit de vendre l'actif au prix $K$ devient plus avantageux.
+
+Le prix d'exercice $K$ intervient également dans la valeur de l'option. Pour un call, plus $K$ est faible, plus l'option est favorable à son détenteur. Pour un put, c'est l'inverse : plus $K$ est élevé, plus l'option est intéressante, car elle permet de vendre le sous-jacent à un prix supérieur.
+
+La maturité $T$ joue aussi un rôle important. Plus la durée restante avant l'échéance est longue, plus le prix du sous-jacent a le temps d'évoluer. Une maturité plus longue peut donc augmenter la valeur d'une option, car elle laisse davantage de possibilités pour que l'option devienne favorable.
+
+Un autre paramètre essentiel est la volatilité du sous-jacent. Elle mesure l'intensité des variations du prix de l'actif au cours du temps.
+
+La volatilité est généralement estimée à partir des rendements du sous-jacent. Il est donc nécessaire de préciser ce que l'on appelle un rendement.
+
+\begin{definition}{Rendement d'un actif financier}{rendement}
+Le rendement d'un actif financier mesure la variation relative de son prix entre deux dates.
+
+Si $S_{i-1}$ désigne le prix de l'actif à la date $i-1$ et $S_i$ son prix à la date $i$, le rendement simple est défini par
+\[
+R_i^{\mathrm{simple}} = \frac{S_i - S_{i-1}}{S_{i-1}}.
+\]
+
+On peut également utiliser le rendement logarithmique, défini par
+\[
+R_i = \ln\left(\frac{S_i}{S_{i-1}}\right).
+\]
+\end{definition}
+
+Dans la suite du rapport, nous utiliserons principalement les rendements logarithmiques. Ce choix est courant en finance, car ils possèdent des propriétés mathématiques intéressantes, notamment l'additivité sur plusieurs périodes. En effet, pour trois dates successives $0$, $1$ et $2$, on a
+\[
+\ln\left(\frac{S_2}{S_0}\right)
+=
+\ln\left(\frac{S_1}{S_0}\right)
++
+\ln\left(\frac{S_2}{S_1}\right).
+\]
+
+Cette propriété facilite l'étude des séries financières et l'estimation de la volatilité à partir de données historiques.
+\begin{definition}{Volatilité}{volatilite}
+La volatilité mesure l'ampleur des fluctuations du prix d'un actif financier au cours du temps. Dans le cadre des options, elle est généralement notée $\sigma$.
+
+Si l'on dispose d'une série de rendements $R_1, R_2, \ldots, R_n$, la volatilité historique peut être estimée par l'écart-type des rendements :
+\[
+\sigma = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(R_i-\bar R)^2},
+\]
+où
+\[
+\bar R = \frac{1}{n}\sum_{i=1}^{n} R_i
+\]
+désigne le rendement moyen observé.
+\end{definition}
+
+Une volatilité élevée signifie que le prix du sous-jacent peut varier fortement. Cela augmente la probabilité que l'option devienne avantageuse avant ou à la maturité. Ainsi, une hausse de la volatilité tend généralement à augmenter la valeur d'un call comme celle d'un put.
+
+Enfin, le taux d'intérêt sans risque intervient dans les modèles de valorisation, car il permet d'actualiser les valeurs futures.
+
+\begin{definition}{Taux sans risque}{taux-sans-risque}
+Le taux sans risque, noté $r$, est le taux de rendement théorique d'un placement considéré comme sans risque sur une période donnée.
+
+Il est utilisé pour ramener une valeur future à sa valeur actuelle.
+\end{definition}
+
+Le taux sans risque influence donc la valeur actuelle des montants payés ou reçus dans le futur. Dans les modèles de valorisation d'options, il intervient notamment dans l'actualisation des payoffs futurs.
+
+Ainsi, les principaux paramètres utilisés pour valoriser une option sont le prix du sous-jacent $S_t$, le prix d'exercice $K$, la maturité $T$, la volatilité $\sigma$ et le taux sans risque $r$. Ces grandeurs seront utilisées dans la suite du rapport pour construire le modèle binomial de Cox-Ross-Rubinstein.
 \newpage
 
 % ============================================================
@@ -226,34 +496,564 @@
 
 \chapter{Modèle de Cox, Ross et Rubinstein}
 
+IL MANQUE UNE INTRODUCTION À CE CHAPITRE
+
 \section{Principe général du modèle binomial}
+
+Le modèle de Cox, Ross et Rubinstein (CRR) a été introduit en 1979 dans
+l'article fondateur \textit{Option Pricing: A Simplified Approach}~\cite{crr1979}.
+Son objectif est de répondre à une question concrète : \textbf{quel est le
+juste prix d'une option financière aujourd'hui ?}
+
+Pour y répondre, le modèle propose une représentation simplifiée mais
+rigoureuse de l'évolution du prix d'un actif au fil du temps. L'idée de
+base est la suivante : plutôt que de supposer que le prix d'un actif peut
+prendre une infinité de valeurs à chaque instant (comme dans les modèles
+continus), le modèle CRR découpe le temps en petites périodes discrètes,
+et suppose qu'à l'issue de chacune d'elles, le prix ne peut évoluer que de
+deux façons possibles :
+
+\begin{itemize}
+    \item soit il \textbf{monte} d'un facteur $u > 1$ (hausse),
+    \item soit il \textbf{descend} d'un facteur $d < 1$ (baisse).
+\end{itemize}
+
+En répétant cette bifurcation sur $N$ périodes successives, on obtient
+une structure arborescente — appelée \textbf{arbre binomial} — qui recense
+toutes les trajectoires possibles du prix de l'actif entre aujourd'hui et
+la date d'échéance de l'option. C'est sur cet arbre que le prix de l'option
+est ensuite calculé.
+
+Ce modèle présente deux avantages majeurs. D'abord, il est \textbf{intuitif} :
+chaque nœud de l'arbre correspond à un état de marché possible, et la logique
+de valorisation est transparente. Ensuite, il est \textbf{flexible} : il
+permet de valoriser aussi bien les options européennes (exercice uniquement
+à l'échéance) que les options américaines (exercice possible à tout moment),
+ce que les formules analytiques comme Black-Scholes ne permettent pas en
+général. Enfin, il peut être démontré que, lorsque le nombre de périodes $N$
+tend vers l'infini, le prix obtenu par le modèle CRR converge vers le prix
+de Black-Scholes~\cite{crr1979}.
 
 \section{Hypothèses du modèle}
 
+Comme tout modèle mathématique, le modèle CRR repose sur un ensemble
+d'hypothèses simplificatrices. Ces hypothèses permettent de rendre le
+problème mathématiquement traitable, au prix d'un certain éloignement par
+rapport à la réalité des marchés. Elles sont détaillées et discutées dans
+Hull~\cite{hull2018}.
+
+\begin{itemize}
+    \item \textbf{Marché sans friction.} On suppose qu'il n'existe pas de
+    coûts de transaction (pas de frais de courtage, pas de taxes), que les
+    actifs sont infiniment divisibles (on peut acheter $0{,}001$ action), et
+    qu'il est possible de vendre un actif que l'on ne possède pas (vente à
+    découvert). En pratique, ces frictions existent, mais les ignorer simplifie
+    considérablement le calcul.
+
+    \item \textbf{Taux sans risque constant.} Il existe un taux d'intérêt $r$
+    auquel tout investisseur peut emprunter ou prêter de l'argent sans risque,
+    et ce taux reste constant pendant toute la durée de vie de l'option. En
+    pratique, on peut utiliser le taux des obligations d'État à court terme
+    comme approximation.
+
+    \item \textbf{Volatilité constante.} La volatilité $\sigma$ — qui mesure
+    l'amplitude des fluctuations du prix de l'actif (voir définition
+    ci-dessous) — est supposée constante. C'est une hypothèse forte : en
+    réalité, la volatilité varie dans le temps (phénomène du \textit{smile
+    de volatilité}).
+
+    \item \textbf{Absence de dividendes.} L'actif sous-jacent ne verse aucun
+    dividende pendant la durée de vie de l'option. Des extensions du modèle
+    permettent de lever cette hypothèse.
+
+    \item \textbf{Absence d'opportunité d'arbitrage.} Il est impossible de
+    réaliser un profit certain sans risque et sans apport de capital initial.
+    Cette hypothèse est la plus fondamentale : c'est elle qui permet de
+    définir un prix unique et cohérent pour l'option.
+\end{itemize}
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Volatilité historique annualisée $\sigma$}
+
+\medskip
+La volatilité d'un actif mesure la dispersion de ses rendements autour de
+leur moyenne. Formellement, si l'on note $r_t = \ln(S_t / S_{t-1})$ le
+\emph{log-rendement} (ou rendement logarithmique) de l'actif entre deux
+instants consécutifs, la volatilité annualisée est l'écart-type de ces
+log-rendements, multiplié par la racine carrée du nombre de périodes par
+an :
+
+\begin{equation}
+    \sigma = \sqrt{\frac{1}{n-1} \sum_{t=1}^{n} (r_t - \bar{r})^2}
+             \times \sqrt{252}
+\end{equation}
+
+où $\bar{r} = \frac{1}{n}\sum_{t=1}^n r_t$ est la moyenne des log-rendements
+et $252$ est le nombre conventionnel de jours de bourse par an. Une volatilité
+élevée signifie que le prix de l'actif fluctue fortement ; une volatilité
+faible indique un actif plus stable.
+\end{minipage}
+}
+
 \section{Discrétisation du temps}
 
-\section{Construction de l’arbre des prix}
+Le modèle CRR travaille en temps discret : la durée de vie de l'option,
+notée $T$ (exprimée en années), est découpée en $N$ intervalles de durée
+égale. Chaque intervalle est appelé un \textbf{pas de temps}.
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Pas de temps $\Delta t$}
+
+\medskip
+Le pas de temps élémentaire du modèle est la durée d'une seule période de
+l'arbre binomial. Il est défini par :
+
+\begin{equation}
+    \Delta t = \frac{T}{N}
+\end{equation}
+
+où $T$ est la maturité de l'option (en années) et $N$ le nombre d'étapes
+choisi pour l'arbre.
+\end{minipage}
+}
+
+\medskip
+
+Par exemple, pour une option de maturité $T = 1$ an découpée en $N = 252$
+étapes, on obtient $\Delta t = 1/252 \approx 0{,}004$ an, ce qui correspond
+environ à un jour de bourse.
+
+À chaque étape $i \in \{0, 1, \ldots, N\}$, le temps correspondant est
+$t_i = i \cdot \Delta t$ : l'étape $i = 0$ est la date d'aujourd'hui,
+l'étape $i = N$ est la date d'échéance de l'option.
+
+Plus $N$ est grand, plus la discrétisation est fine et plus le prix calculé
+par le modèle CRR se rapproche du prix continu de Black-Scholes. En pratique,
+quelques centaines d'étapes suffisent à obtenir une bonne précision.
+
+\section{Construction de l'arbre des prix}
 
 \subsection{Prix initial du sous-jacent}
 
+L'arbre est initialisé à sa racine (étape $i = 0$) avec le prix courant
+de l'actif sous-jacent, noté $S_0$. C'est le seul prix connu avec certitude ;
+tous les prix futurs sont des valeurs possibles, pas des valeurs certaines.
+
+À partir de ce nœud unique, l'arbre se ramifie à chaque étape en deux
+branches : une hausse (multiplication par $u$) et une baisse (multiplication
+par $d$). On repère chaque nœud par une paire $(i, j)$, où $i$ est le numéro
+de l'étape temporelle et $j$ est le nombre de hausses qui se sont produites
+depuis le départ.
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Prix au nœud $(i, j)$}
+
+\medskip
+Le prix de l'actif sous-jacent au nœud $(i, j)$ de l'arbre est :
+
+\begin{equation}
+    S_{i,j} = S_0 \cdot u^j \cdot d^{i-j}
+\end{equation}
+
+où :
+\begin{itemize}[noitemsep]
+    \item $i \in \{0, 1, \ldots, N\}$ est le numéro de l'étape (le temps),
+    \item $j \in \{0, 1, \ldots, i\}$ est le nombre de hausses survenues,
+    \item $i - j$ est donc le nombre de baisses survenues,
+    \item $u > 1$ est le facteur de hausse,
+    \item $d < 1$ est le facteur de baisse.
+\end{itemize}
+\end{minipage}
+}
+
+\medskip
+
+Intuitivement, si le marché a monté $j$ fois et baissé $i-j$ fois, le prix
+final est $S_0$ multiplié $j$ fois par $u$ et $i-j$ fois par $d$.
+
 \subsection{Facteur de hausse}
+
+Le facteur de hausse $u$ quantifie de combien le prix de l'actif augmente
+lors d'une période haussière. Il dépend directement de la volatilité $\sigma$
+de l'actif et de la durée du pas de temps $\Delta t$.
+
+La formule proposée par Cox, Ross et Rubinstein~\cite{crr1979} est :
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Facteur de hausse $u$}
+
+\begin{equation}
+    u = e^{\sigma \sqrt{\Delta t}}
+\end{equation}
+
+où $e \approx 2{,}718$ est la base de l'exponentielle naturelle, $\sigma$
+est la volatilité annualisée de l'actif, et $\Delta t$ est la durée d'un pas
+de temps.
+\end{minipage}
+}
+
+\medskip
+
+\textbf{Pourquoi cette formule ?} Elle provient d'un argument de cohérence
+avec les modèles financiers continus. Pour que le modèle discret soit
+compatible avec l'hypothèse que le prix de l'actif suit un mouvement brownien
+géométrique (hypothèse standard en finance, à la base du modèle de
+Black-Scholes), il faut que la \textit{variance} des log-rendements sur une
+période soit égale à $\sigma^2 \Delta t$. Or, si le log-rendement sur une
+hausse vaut $\ln(u) = \sigma\sqrt{\Delta t}$, on vérifie que
+$(\ln u)^2 = \sigma^2 \Delta t$, ce qui assure cette cohérence.
+
+\textbf{Exemple numérique.} Pour une action dont la volatilité annuelle est
+$\sigma = 20\%$ et un pas de temps $\Delta t = 1/52$ an (une semaine) :
+\[
+    u = e^{0{,}20 \times \sqrt{1/52}} \approx e^{0{,}0277} \approx 1{,}028
+\]
+Cela signifie qu'une semaine haussière multiplie le prix par environ $1{,}028$,
+soit une hausse de $2{,}8\%$.
 
 \subsection{Facteur de baisse}
 
-\section{Formule des prix dans l’arbre}
+Le facteur de baisse $d$ est, dans le modèle CRR, simplement l'inverse du
+facteur de hausse.
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Facteur de baisse $d$}
+
+\begin{equation}
+    d = e^{-\sigma \sqrt{\Delta t}} = \frac{1}{u}
+\end{equation}
+\end{minipage}
+}
+
+\medskip
+
+\textbf{Pourquoi $d = 1/u$ ?} Ce choix garantit une propriété très utile
+appelée la \textbf{recombinaison de l'arbre}. En effet :
+
+\begin{equation}
+    S_0 \cdot u \cdot d = S_0 \cdot u \cdot \frac{1}{u} = S_0
+\end{equation}
+
+Cela signifie que peu importe l'ordre dans lequel surviennent une hausse
+et une baisse, on retombe toujours au même prix. L'arbre \og se referme \fg{}
+sur lui-même, comme illustré sur la figure~\ref{fig:arbre_recombinaison}.
+
+\begin{figure}[H]
+\centering
+\begin{equation*}
+\begin{array}{ccccc}
+            &           & S_0 u^2   \\
+            & S_0 u     &           \\
+S_0         &           & S_0       \\
+            & S_0 d     &           \\
+            &           & S_0 d^2
+\end{array}
+\end{equation*}
+\caption{Arbre binomial recombiné pour $N = 2$. On vérifie que le nœud
+central de l'étape $i = 2$ vaut bien $S_0 \cdot u \cdot d = S_0 \cdot d
+\cdot u = S_0$.}
+\label{fig:arbre_recombinaison}
+\end{figure}
+
+Cette propriété est cruciale sur le plan calculatoire : un arbre recombiné
+ne contient que $N+1$ nœuds distincts à l'étape finale, contre $2^N$ pour
+un arbre non recombiné. Pour $N = 100$, cela représente respectivement $101$
+nœuds contre $2^{100} \approx 10^{30}$ — un gain de calcul considérable.
+
+\section{Formule des prix dans l'arbre}
+
+À l'étape finale $i = N$ de l'arbre, on dénombre $N+1$ nœuds distincts. Ils
+représentent tous les prix possibles de l'actif à l'échéance de l'option :
+
+\begin{equation}
+    S_{N,j} = S_0 \cdot u^j \cdot d^{N-j}, \quad j = 0, 1, \ldots, N
+\end{equation}
+
+Le nœud $j = 0$ correspond au scénario le plus défavorable ($N$ baisses
+successives) et le nœud $j = N$ au scénario le plus favorable ($N$ hausses
+successives). Les nœuds intermédiaires correspondent à des scenarii mixtes.
+
+Pour illustrer, voici l'arbre complet pour $N = 3$ :
+
+\begin{equation*}
+\begin{array}{ccccccc}
+                &           &           & S_0 u^3   \\
+                &           & S_0 u^2   &           \\
+                & S_0 u     &           & S_0 u     \\
+S_0             &           & S_0       &           \\
+                & S_0 d     &           & S_0 d     \\
+                &           & S_0 d^2   &           \\
+                &           &           & S_0 d^3
+\end{array}
+\end{equation*}
+
+On vérifie la recombinaison : le nœud central de la dernière colonne est
+$S_0 u^1 d^2$ ou $S_0 d^1 u^2$, les deux expressions donnant $S_0 u d^2$ et
+$S_0 u^2 d$ respectivement, et le nœud $(3, 1)$ vaut bien $S_0 u d^2 = S_0 d^2 u$.
 
 \section{Probabilité risque-neutre}
+\label{sec:proba_risque_neutre}
+
+\subsection*{Intuition}
+
+Une fois l'arbre des prix construit, il faut un moyen d'agréger les différentes
+valeurs possibles de l'option pour en déduire son prix aujourd'hui. Pour cela,
+on va \og peser \fg{} chaque scénario par une probabilité, puis actualiser.
+Mais quelle probabilité utiliser ?
+
+La réponse du modèle CRR est d'utiliser non pas les probabilités réelles du
+marché (que l'on ne connaît pas), mais une probabilité artificielle, dite
+\textbf{risque-neutre}, construite de façon à ce que l'absence d'arbitrage
+soit vérifiée.
+
+\subsection*{Dérivation}
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Probabilité risque-neutre $p^*$}
+
+\medskip
+La probabilité risque-neutre est la probabilité de hausse $p^* \in (0,1)$
+telle que le rendement espéré de l'actif sous-jacent est exactement égal
+au taux sans risque $r$. Elle est définie par :
+
+\begin{equation}
+    \boxed{p^* = \frac{e^{r \Delta t} - d}{u - d}}
+\end{equation}
+
+La probabilité de baisse est alors $1 - p^* = \dfrac{u - e^{r\Delta t}}{u - d}$.
+\end{minipage}
+}
+
+\medskip
+
+\textbf{Comment obtient-on cette formule ?} On impose la condition
+d'absence d'arbitrage : le prix actualisé de l'actif doit être une
+\textit{martingale} sous la probabilité $p^*$, ce qui signifie que le prix
+actuel de l'actif doit être égal à l'espérance de son prix futur,
+actualisée au taux sans risque. Sur une seule période, cela s'écrit :
+
+\begin{equation}
+    S \cdot e^{r \Delta t} = p^* \cdot (u \cdot S) + (1 - p^*) \cdot (d \cdot S)
+\end{equation}
+
+Le membre gauche est la valeur que $S$ aurait si on l'avait placé au taux
+sans risque pendant $\Delta t$. Le membre droit est l'espérance du prix
+futur (hausse avec probabilité $p^*$, baisse avec probabilité $1-p^*$).
+En simplifiant par $S > 0$ et en isolant $p^*$ :
+
+\begin{align}
+    e^{r \Delta t} &= p^* u + (1 - p^*) d \\
+    e^{r \Delta t} - d &= p^*(u - d) \\
+    p^* &= \frac{e^{r \Delta t} - d}{u - d}
+\end{align}
+
+\subsection*{Condition de validité}
+
+Pour que $p^*$ soit bien une probabilité (comprise entre 0 et 1), il faut
+que :
+
+\begin{equation}
+    d < e^{r \Delta t} < u
+\end{equation}
+
+Cette condition a une interprétation économique directe : \textbf{le
+rendement de l'actif sans risque doit être strictement compris entre le
+rendement d'une baisse et le rendement d'une hausse.} Si ce n'était pas
+le cas, il serait possible de construire un portefeuille garantissant un
+gain certain sans aucun risque ni apport de capital — ce qui est précisément
+une opportunité d'arbitrage. Avec $u = e^{\sigma\sqrt{\Delta t}}$ et
+$d = e^{-\sigma\sqrt{\Delta t}}$, cette condition est toujours satisfaite
+dès que $\sigma > 0$.
+
+\subsection*{Interprétation}
+
+Il est fondamental de comprendre que $p^*$ \textbf{n'est pas} la probabilité
+réelle que le prix monte demain. C'est une probabilité fictive, construite
+uniquement pour garantir la cohérence mathématique du modèle. Sous cette
+mesure, tout actif a le même rendement espéré — le taux sans risque $r$ —
+quelle que soit son risque réel. Cela permet de valoriser l'option sans avoir
+à estimer les préférences pour le risque des investisseurs, ce qui est un
+avantage considérable en pratique~\cite{hull2018}.
 
 \section{Actualisation}
 
+Une fois que l'on dispose de la probabilité risque-neutre $p^*$, on peut
+définir une règle pour calculer la valeur de l'option en tout nœud de l'arbre.
+Cette règle repose sur le principe d'actualisation : la valeur présente d'un
+flux futur est son espérance (sous $p^*$) multipliée par un facteur
+d'escompte.
+
+\medskip
+
+\noindent\fbox{%
+\begin{minipage}{0.96\textwidth}
+\textbf{Définition — Facteur d'actualisation}
+
+\medskip
+Le facteur d'actualisation sur une période $\Delta t$ au taux sans risque
+$r$ est :
+
+\begin{equation}
+    \delta = e^{-r \Delta t}
+\end{equation}
+
+Il représente la valeur aujourd'hui d'une unité monétaire reçue dans
+$\Delta t$ ans, placée au taux sans risque.
+\end{minipage}
+}
+
+\medskip
+
+La \textbf{valeur de l'option} au nœud $(i, j)$ est alors l'espérance
+actualisée de sa valeur au nœud suivant :
+
+\begin{equation}
+    V_{i,j} = e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
+              + (1 - p^*) \cdot V_{i+1,\, j} \Bigr]
+    \label{eq:actualisation}
+\end{equation}
+
+où :
+\begin{itemize}[noitemsep]
+    \item $V_{i+1,\, j+1}$ est la valeur de l'option si le marché monte à
+          l'étape suivante,
+    \item $V_{i+1,\, j}$ est la valeur de l'option si le marché baisse à
+          l'étape suivante.
+\end{itemize}
+
+Cette relation de récurrence est le \textbf{cœur du modèle CRR}. Elle dit
+simplement : la valeur de l'option aujourd'hui est la moyenne pondérée (par
+$p^*$ et $1-p^*$) de sa valeur demain, ramenée à aujourd'hui par le facteur
+d'actualisation $e^{-r\Delta t}$.
+
 \section{Rétropropagation}
 
-\subsection{Cas d’une option européenne}
+La \textbf{rétropropagation} (ou \textit{backward induction} en anglais)
+est l'algorithme qui exploite la relation~(\ref{eq:actualisation}) pour
+calculer le prix de l'option. L'idée est simple : puisque la formule
+d'actualisation permet de calculer la valeur en un nœud à partir des
+valeurs des nœuds suivants, on commence par les nœuds terminaux (dont on
+connaît la valeur via le payoff) et on remonte jusqu'à la racine.
 
-\subsection{Cas d’une option américaine}
+\subsection{Cas d'une option européenne}
+
+Pour une option européenne, l'exercice n'est possible qu'à la date
+d'échéance $T$. La valeur en chaque nœud terminal est donc directement
+le payoff de l'option pour le prix $S_{N,j}$ correspondant.
+
+\textbf{Étape 1 — Initialisation aux nœuds terminaux.}
+Pour chaque nœud $j = 0, 1, \ldots, N$ à l'étape $i = N$ :
+
+\begin{equation}
+    V_{N,j} = \text{payoff}(S_{N,j})
+\end{equation}
+
+Pour un call de prix d'exercice $K$, le payoff est :
+\begin{equation}
+    V_{N,j} = \max(S_{N,j} - K,\ 0)
+\end{equation}
+
+Pour un put :
+\begin{equation}
+    V_{N,j} = \max(K - S_{N,j},\ 0)
+\end{equation}
+
+\textbf{Étape 2 — Remontée de l'arbre.}
+On applique ensuite la formule d'actualisation~(\ref{eq:actualisation}) de
+manière récursive, en partant de l'étape $i = N-1$ et en remontant jusqu'à
+$i = 0$ :
+
+\begin{equation}
+    V_{i,j} = e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
+              + (1 - p^*) \cdot V_{i+1,\, j} \Bigr],
+    \quad i = N-1, \ldots, 0,\quad j = 0, \ldots, i
+\end{equation}
+
+\textbf{Résultat.} La valeur $V_{0,0}$ obtenue à la racine de l'arbre
+est le \textbf{prix de l'option européenne}.
+
+\subsection{Cas d'une option américaine}
+
+Pour une option américaine, le détenteur a le droit d'exercer l'option
+à n'importe quel moment avant l'échéance. En chaque nœud intermédiaire
+$(i, j)$, il doit donc choisir entre deux stratégies :
+
+\begin{itemize}
+    \item \textbf{Ne pas exercer} et conserver l'option, dont la valeur
+          est donnée par la formule d'actualisation : c'est la
+          \emph{valeur de continuation}.
+    \item \textbf{Exercer immédiatement} et encaisser le payoff courant
+          $\text{payoff}(S_{i,j})$.
+\end{itemize}
+
+Un investisseur rationnel choisit toujours l'option qui maximise sa valeur.
+La relation de rétropropagation devient donc :
+
+\begin{equation}
+    V_{i,j} = \max\!\Biggl(
+        \underbrace{e^{-r \Delta t} \Bigl[ p^* \cdot V_{i+1,\, j+1}
+                   + (1 - p^*) \cdot V_{i+1,\, j} \Bigr]}_{%
+                   \text{valeur de continuation}},\;\;
+        \underbrace{\text{payoff}(S_{i,j})}_{\text{exercice immédiat}}
+    \Biggr)
+\end{equation}
+
+Cette comparaison est effectuée à \textit{chaque} nœud intermédiaire de
+l'arbre. C'est la seule modification par rapport au cas européen, mais elle
+est fondamentale : elle permet de déterminer automatiquement, pour chaque
+état de marché possible, s'il est optimal d'exercer l'option ou de la
+conserver.
 
 \section{Différence entre option européenne et option américaine}
 
+La différence de valeur entre une option américaine et son équivalent
+européen est appelée la \textbf{prime d'exercice anticipé}. Puisque
+l'option américaine donne un droit supplémentaire (exercice à tout moment),
+elle vaut toujours au moins autant que l'option européenne :
+
+\begin{equation}
+    V^{\text{américaine}} \geq V^{\text{européenne}}
+\end{equation}
+
+Cependant, ce droit supplémentaire n'a pas toujours de valeur :
+
+\begin{itemize}
+    \item Pour un \textbf{call américain sur un actif sans dividende}, il
+    n'est jamais optimal d'exercer avant l'échéance. En effet, vendre
+    l'option sur le marché rapporte toujours plus qu'exercer (car l'option
+    incorpore une valeur temps positive). La prime d'exercice anticipé est
+    donc nulle, et le call américain vaut exactement autant que le call
+    européen. Ce résultat est classique en finance~\cite{hull2018}.
+
+    \item Pour un \textbf{put américain}, en revanche, l'exercice anticipé
+    peut être optimal lorsque l'option est très profondément dans la monnaie
+    (\textit{deep in the money}) et que les taux d'intérêt sont élevés. Dans
+    ce cas, encaisser le payoff immédiatement et placer la somme au taux sans
+    risque peut rapporter plus que de conserver l'option. Le put américain
+    vaut alors strictement plus que son équivalent européen.
+\end{itemize}
+
+Le modèle CRR capture naturellement cette différence grâce au critère de
+maximisation appliqué à chaque nœud lors de la rétropropagation. C'est
+précisément pour cette raison que l'arbre binomial est un outil de référence
+pour la valorisation des options américaines, en l'absence de formule
+analytique fermée de type Black-Scholes.
 \newpage
 
 % ============================================================

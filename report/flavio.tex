@@ -1,10 +1,315 @@
-1. Cadre théorique financier
-   1.1 Options financières
-   1.2 Call et put
-   1.3 Payoff
-   1.4 Option européenne
-   1.5 Option américaine
-   1.6 Paramètres influençant le prix d’une option
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{enumitem}
+\setlist[itemize]{label=\textendash}
+\usepackage{amsthm}
+\usepackage[most]{tcolorbox}
+
+\newtcbtheorem[number within=chapter]{definition}{Définition}%
+{colback=gray!5,
+ colframe=black!60,
+ fonttitle=\bfseries,
+ coltitle=black,
+ sharp corners,
+ boxrule=0.5pt,
+ breakable}{def}
+
+\begin{document}
+
+
+\chapter{Cadre théorique financier}
+
+Ce chapitre présente les concepts fondamentaux nécessaires à la compréhension des options financières et de leur valorisation. Avant d’aborder les modèles numériques utilisés pour calculer le prix d’une option, il est important de définir précisément les notions financières de base telles que l'actif sous-jacent, l'option financière, le prix d'exercice, la maturité, le payoff, l'option européenne et l'option américaine.
+
+L’objectif de ce chapitre est donc de construire progressivement le cadre théorique du rapport. Nous commencerons par présenter la notion d’option financière, puis nous distinguerons les deux grands types d’options classiques dont le call et le put. Nous introduirons ensuite la notion de payoff, qui permet de décrire le gain obtenu à l’échéance d’une option. Enfin, nous présenterons les principales caractéristiques influençant le prix d’une option, comme le prix du sous-jacent, la volatilité, le taux d’intérêt, la maturité et le prix d’exercice.
+
+Ces définitions seront ensuite utilisées dans les chapitres suivants pour mettre en place le modèle binomial de Cox-Ross-Rubinstein et calibrer ses paramètres à partir de données de marché.
+
+\section{Définition d'une option financière}
+
+Les options financières appartiennent à la famille des produits dérivés. Avant de définir précisément une option financière, il est donc nécessaire d'introduire d'abord la notion de produit dérivé, puis celle d'actif sous-jacent.
+
+\begin{definition}{Produit dérivé}{produit-derive}
+Un produit dérivé est un instrument financier dont la valeur dépend de l'évolution d'un autre actif, appelé actif sous-jacent.
+\end{definition}
+
+\begin{definition}{Actif sous-jacent}{actif-sous-jacent}
+Un actif sous-jacent est l'actif financier sur lequel repose un produit dérivé.
+
+Il peut s'agir par exemple :
+\begin{itemize}
+    \item d'une action ;
+    \item d'un indice boursier ;
+    \item d'une devise ;
+    \item d'une matière première ;
+    \item d'une obligation.
+\end{itemize}
+
+On note généralement le prix de l'actif sous-jacent à la date $t$ par :
+\[
+S_t.
+\]
+\end{definition}
+
+Dans le cadre de ce rapport, l'actif sous-jacent considéré sera principalement une action. L'évolution de son prix au cours du temps jouera un rôle central dans la valorisation de l'option.
+
+Une option financière est un contrat portant sur un actif sous-jacent. Elle donne à son détenteur un droit, mais pas une obligation. Ce droit peut être un droit d'achat ou un droit de vente.
+
+\begin{definition}{Option financière}{option-financiere}
+Une option financière est un contrat qui donne à son détenteur le droit, mais non l'obligation, d'acheter ou de vendre un actif sous-jacent à un prix fixé à l'avance, à une date donnée ou pendant une période donnée.
+\end{definition}
+
+Le prix fixé à l'avance dans le contrat est appelé prix d'exercice.
+
+\begin{definition}{Prix d'exercice}{prix-exercice}
+Le prix d'exercice, noté $K$, est le prix auquel le détenteur de l'option peut acheter ou vendre l'actif sous-jacent si l'option est exercée.
+\end{definition}
+
+Une option se distingue donc d'un contrat classique par le fait que son détenteur possède un droit, mais n'est jamais obligé de l'exercer. Cette propriété est essentielle : si l'exercice de l'option est défavorable, le détenteur peut choisir de ne pas exercer son droit.
+
+Le contrat d'option est également associé à une date limite. Cette date est appelée maturité ou échéance.
+
+\begin{definition}{Maturité}{maturite}
+La maturité, notée $T$, désigne la date d'échéance du contrat d'option.
+
+À cette date, selon le type d'option considéré, le détenteur peut exercer son droit d'achat ou de vente.
+\end{definition}
+
+Une option financière est donc principalement caractérisée par les éléments suivants :
+\begin{itemize}
+   \item $S_t$, le prix du sous-jacent à la date $t$ ;
+   \item $K$, le prix d'exercice ;
+   \item $T$, la maturité de l'option.
+\end{itemize}
+
+Enfin, pour obtenir ce droit, l'acheteur de l'option doit payer un prix. Ce prix est appelé prime de l'option.
+
+\begin{definition}{Prime d'une option}{prime-option}
+La prime d'une option est le prix payé par l'acheteur pour obtenir le droit associé au contrat d'option.
+
+Elle représente également le prix de marché de l'option à la date considérée.
+\end{definition}
+
+Dans la suite du rapport, l'objectif sera de comprendre comment déterminer cette prime à l'aide de modèles mathématiques. Pour cela, il faudra d'abord distinguer les deux types fondamentaux d'options : les options d'achat, appelées \textit{calls}, et les options de vente, appelées \textit{puts}.
+
+%%% CALL ET PUT %%%
+
+\section{Call et put}
+
+Les options financières sont des instruments échangés sur les marchés financiers. Avant de distinguer les deux formes principales d'options, il est utile de préciser brièvement ce que l'on entend par marché financier.
+
+\begin{definition}{Marché financier}{marche-financier}
+Un marché financier est un lieu, physique ou électronique, sur lequel des agents économiques peuvent acheter et vendre des actifs financiers, comme des actions, des obligations, des devises ou des produits dérivés.
+\end{definition}
+
+Dans ce cadre, les options financières permettent aux investisseurs de prendre position sur l'évolution future d'un actif sous-jacent. Une option peut donner un droit d'achat ou un droit de vente sur cet actif. Ces deux cas correspondent respectivement au \textit{call} et au \textit{put}.
+
+\begin{definition}{Option d'achat ou call}{call}
+Une option d'achat, appelée \textit{call}, est une option qui donne à son détenteur le droit, mais non l'obligation, d'acheter un actif sous-jacent à un prix fixé à l'avance, appelé prix d'exercice.
+
+On note $K$ le prix d'exercice et $S_T$ le prix du sous-jacent à la maturité $T$. Le call présente un intérêt pour son détenteur lorsque
+\[
+S_T > K.
+\]
+Dans cette situation, l'acheteur du call peut acheter l'actif au prix $K$, alors que sa valeur de marché est $S_T$.
+\end{definition}
+
+Le call est donc associé à une anticipation de hausse du prix du sous-jacent. Lorsque le prix de marché devient supérieur au prix d'exercice, l'exercice de l'option permet d'acheter l'actif à un prix inférieur à sa valeur observée sur le marché. En revanche, si $S_T \leq K$, l'exercice n'est pas avantageux, car l'actif peut être acheté directement sur le marché à un prix inférieur ou égal à $K$.
+
+\begin{definition}{Option de vente ou put}{put}
+Une option de vente, appelée \textit{put}, est une option qui donne à son détenteur le droit, mais non l'obligation, de vendre un actif sous-jacent à un prix fixé à l'avance, appelé prix d'exercice.
+
+On note $K$ le prix d'exercice et $S_T$ le prix du sous-jacent à la maturité $T$. Le put présente un intérêt pour son détenteur lorsque
+\[
+S_T < K.
+\]
+Dans cette situation, l'acheteur du put peut vendre l'actif au prix $K$, alors que sa valeur de marché est $S_T$.
+\end{definition}
+
+Le put est donc associé à une anticipation de baisse du prix du sous-jacent. Lorsque le prix de marché devient inférieur au prix d'exercice, l'exercice de l'option permet de vendre l'actif à un prix supérieur à sa valeur observée sur le marché. En revanche, si $S_T \geq K$, l'exercice n'est pas avantageux, car l'actif peut être vendu directement sur le marché à un prix supérieur ou égal à $K$.
+
+Ainsi, le call et le put reposent sur deux situations opposées. Le call devient intéressant lorsque le prix du sous-jacent dépasse le prix d'exercice, tandis que le put devient intéressant lorsque le prix du sous-jacent devient inférieur au prix d'exercice. Cette distinction permettra, dans la section suivante, d'introduire la notion de payoff, c'est-à-dire le gain obtenu à la maturité selon l'évolution du prix du sous-jacent.
+
+%%%% PAYOFF %%%%
+
+\section{Payoff}
+
+Après avoir distingué les deux types fondamentaux d'options, le call et le put, il est nécessaire d'introduire la notion de payoff. Cette notion permet de mesurer ce que rapporte une option à sa maturité, avant de prendre en compte le prix payé pour l'acheter.
+
+\begin{definition}{Payoff d'une option}{payoff-option}
+Le payoff d'une option désigne le gain obtenu par le détenteur de l'option à la maturité $T$, en fonction du prix final du sous-jacent $S_T$ et du prix d'exercice $K$.
+
+Il ne tient pas compte de la prime payée pour acheter l'option.
+\end{definition}
+
+Le payoff dépend donc de la position relative entre le prix du sous-jacent à la maturité, noté $S_T$, et le prix d'exercice, noté $K$. Si l'exercice de l'option est avantageux, le payoff est positif. Dans le cas contraire, le détenteur choisit de ne pas exercer son droit, et le payoff est nul.
+
+Pour une option d'achat, le détenteur exerce son droit seulement lorsque le prix du sous-jacent est supérieur au prix d'exercice. Le payoff d'un call est donc donné par la quantité positive entre $S_T - K$ et $0$.
+
+\begin{definition}{Payoff d'un call}{payoff-call}
+Le payoff d'un call à la maturité $T$ est donné par
+\[
+\Pi_{\text{call}}(S_T) = \max(S_T - K, 0).
+\]
+
+Ainsi, si $S_T > K$, le payoff vaut
+\[
+\Pi_{\text{call}}(S_T) = S_T - K.
+\]
+
+Si $S_T \leq K$, le payoff vaut
+\[
+\Pi_{\text{call}}(S_T) = 0.
+\]
+\end{definition}
+
+Cette formule traduit directement le fonctionnement économique du call. Lorsque le prix du sous-jacent dépasse le prix d'exercice, l'acheteur peut acheter l'actif à un prix inférieur à sa valeur de marché. L'écart $S_T - K$ représente alors le gain obtenu à l'exercice. Lorsque $S_T \leq K$, l'exercice n'est pas avantageux, et le détenteur laisse l'option expirer.
+
+Pour une option de vente, la situation est inverse. Le détenteur exerce son droit lorsque le prix du sous-jacent est inférieur au prix d'exercice. Le payoff d'un put est donc donné par la quantité positive entre $K - S_T$ et $0$.
+
+\begin{definition}{Payoff d'un put}{payoff-put}
+Le payoff d'un put à la maturité $T$ est donné par
+\[
+\Pi_{\text{put}}(S_T) = \max(K - S_T, 0).
+\]
+
+Ainsi, si $S_T < K$, le payoff vaut
+\[
+\Pi_{\text{put}}(S_T) = K - S_T.
+\]
+
+Si $S_T \geq K$, le payoff vaut
+\[
+\Pi_{\text{put}}(S_T) = 0.
+\]
+\end{definition}
+
+Cette formule exprime l'intérêt économique du put. Lorsque le prix du sous-jacent devient inférieur au prix d'exercice, l'acheteur du put peut vendre l'actif au prix $K$, alors que sa valeur de marché est plus faible. L'écart $K - S_T$ représente alors le gain obtenu à l'exercice. Lorsque $S_T \geq K$, il n'est pas avantageux d'exercer l'option, et le payoff est nul.
+
+Il est important de distinguer le payoff du profit réel de l'investisseur.
+
+\begin{definition}{Profit d'une option}{profit-option}
+Le profit d'une option correspond au payoff diminué de la prime payée pour acheter l'option.
+
+Si la prime est notée $C_0$ pour un call, alors le profit du call est donné par
+\[
+\Pi_{\text{call}}(S_T) - C_0.
+\]
+
+Si la prime est notée $P_0$ pour un put, alors le profit du put est donné par
+\[
+\Pi_{\text{put}}(S_T) - P_0.
+\]
+\end{definition}
+
+Le payoff mesure uniquement le gain obtenu à la maturité grâce à l'exercice de l'option. Le profit, lui, prend aussi en compte la prime payée au départ pour acheter cette option.
+
+Cette distinction entre payoff et profit est importante, car elle permet de séparer le gain obtenu à l'exercice de l'option du coût initial payé pour acquérir ce droit. Dans la suite, nous nous intéresserons également au moment auquel ce droit peut être exercé. Cette question conduit à distinguer les options européennes et les options américaines.
+
+\section{Options européennes et américaines}
+
+Après avoir défini le payoff d'une option, il est nécessaire de préciser à quel moment le détenteur peut exercer son droit. En effet, toutes les options ne possèdent pas les mêmes règles d'exercice. On distingue principalement les options européennes et les options américaines.
+
+\begin{definition}{Option européenne}{option-europeenne}
+Une option européenne est une option qui ne peut être exercée qu'à sa date de maturité $T$.
+
+Ainsi, le détenteur de l'option prend sa décision uniquement à l'échéance, en comparant le prix du sous-jacent $S_T$ au prix d'exercice $K$.
+\end{definition}
+
+Dans le cas d'une option européenne, le détenteur ne peut donc pas exercer son droit avant la date $T$. Même si l'option devient avantageuse avant l'échéance, il doit attendre la maturité pour décider s'il exerce ou non son droit.
+
+Pour un call européen, l'exercice est intéressant à la maturité lorsque
+\[
+S_T > K.
+\]
+Pour un put européen, l'exercice est intéressant à la maturité lorsque
+\[
+S_T < K.
+\]
+
+\begin{definition}{Option américaine}{option-americaine}
+Une option américaine est une option qui peut être exercée à tout moment entre la date d'achat du contrat et sa maturité $T$.
+\end{definition}
+
+Contrairement à l'option européenne, l'option américaine donne donc plus de flexibilité à son détenteur. Celui-ci peut choisir d'exercer son droit avant l'échéance si cela lui semble avantageux. Cette liberté supplémentaire rend généralement la valorisation d'une option américaine plus complexe, car il faut étudier la possibilité d'exercice à chaque date avant la maturité.
+
+On peut résumer la différence principale de la manière suivante. Une option européenne ne peut être exercée qu'à la date finale $T$, tandis qu'une option américaine peut être exercée à n'importe quelle date avant ou à la maturité.
+
+Cette distinction est importante, car le moment d'exercice influence la valeur de l'option. Cependant, le type d'exercice n'est pas le seul élément à prendre en compte. Le prix d'une option dépend également de plusieurs paramètres financiers, comme le prix du sous-jacent, le prix d'exercice, la maturité, la volatilité ou encore le taux d'intérêt. Ces paramètres sont présentés dans la section suivante.
+%%% PARAMETRES INFLUENCANT LE PRIX D'UNE OPTION %%%
+\section{Paramètres influençant le prix d'une option}
+
+Le prix d'une option, aussi appelé prime, dépend de plusieurs paramètres financiers. Certains ont déjà été introduits précédemment, comme le prix du sous-jacent $S_t$, le prix d'exercice $K$ et la maturité $T$. Ces grandeurs jouent un rôle central dans la valorisation, car elles déterminent les conditions dans lesquelles l'option peut devenir avantageuse pour son détenteur.
+
+Le prix du sous-jacent $S_t$ influence directement la valeur de l'option. Pour un call, une hausse du prix du sous-jacent tend à augmenter la valeur de l'option, car le droit d'acheter l'actif au prix $K$ devient plus intéressant. À l'inverse, pour un put, une baisse du prix du sous-jacent tend à augmenter la valeur de l'option, car le droit de vendre l'actif au prix $K$ devient plus avantageux.
+
+Le prix d'exercice $K$ intervient également dans la valeur de l'option. Pour un call, plus $K$ est faible, plus l'option est favorable à son détenteur. Pour un put, c'est l'inverse : plus $K$ est élevé, plus l'option est intéressante, car elle permet de vendre le sous-jacent à un prix supérieur.
+
+La maturité $T$ joue aussi un rôle important. Plus la durée restante avant l'échéance est longue, plus le prix du sous-jacent a le temps d'évoluer. Une maturité plus longue peut donc augmenter la valeur d'une option, car elle laisse davantage de possibilités pour que l'option devienne favorable.
+
+Un autre paramètre essentiel est la volatilité du sous-jacent. Elle mesure l'intensité des variations du prix de l'actif au cours du temps.
+
+La volatilité est généralement estimée à partir des rendements du sous-jacent. Il est donc nécessaire de préciser ce que l'on appelle un rendement.
+
+\begin{definition}{Rendement d'un actif financier}{rendement}
+Le rendement d'un actif financier mesure la variation relative de son prix entre deux dates.
+
+Si $S_{i-1}$ désigne le prix de l'actif à la date $i-1$ et $S_i$ son prix à la date $i$, le rendement simple est défini par
+\[
+R_i^{\mathrm{simple}} = \frac{S_i - S_{i-1}}{S_{i-1}}.
+\]
+
+On peut également utiliser le rendement logarithmique, défini par
+\[
+R_i = \ln\left(\frac{S_i}{S_{i-1}}\right).
+\]
+\end{definition}
+
+Dans la suite du rapport, nous utiliserons principalement les rendements logarithmiques. Ce choix est courant en finance, car ils possèdent des propriétés mathématiques intéressantes, notamment l'additivité sur plusieurs périodes. En effet, pour trois dates successives $0$, $1$ et $2$, on a
+\[
+\ln\left(\frac{S_2}{S_0}\right)
+=
+\ln\left(\frac{S_1}{S_0}\right)
++
+\ln\left(\frac{S_2}{S_1}\right).
+\]
+
+Cette propriété facilite l'étude des séries financières et l'estimation de la volatilité à partir de données historiques.
+\begin{definition}{Volatilité}{volatilite}
+La volatilité mesure l'ampleur des fluctuations du prix d'un actif financier au cours du temps. Dans le cadre des options, elle est généralement notée $\sigma$.
+
+Si l'on dispose d'une série de rendements $R_1, R_2, \ldots, R_n$, la volatilité historique peut être estimée par l'écart-type des rendements :
+\[
+\sigma = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(R_i-\bar R)^2},
+\]
+où
+\[
+\bar R = \frac{1}{n}\sum_{i=1}^{n} R_i
+\]
+désigne le rendement moyen observé.
+\end{definition}
+
+Une volatilité élevée signifie que le prix du sous-jacent peut varier fortement. Cela augmente la probabilité que l'option devienne avantageuse avant ou à la maturité. Ainsi, une hausse de la volatilité tend généralement à augmenter la valeur d'un call comme celle d'un put.
+
+Enfin, le taux d'intérêt sans risque intervient dans les modèles de valorisation, car il permet d'actualiser les valeurs futures.
+
+\begin{definition}{Taux sans risque}{taux-sans-risque}
+Le taux sans risque, noté $r$, est le taux de rendement théorique d'un placement considéré comme sans risque sur une période donnée.
+
+Il est utilisé pour ramener une valeur future à sa valeur actuelle.
+\end{definition}
+
+Le taux sans risque influence donc la valeur actuelle des montants payés ou reçus dans le futur. Dans les modèles de valorisation d'options, il intervient notamment dans l'actualisation des payoffs futurs.
+
+Ainsi, les principaux paramètres utilisés pour valoriser une option sont le prix du sous-jacent $S_t$, le prix d'exercice $K$, la maturité $T$, la volatilité $\sigma$ et le taux sans risque $r$. Ces grandeurs seront utilisées dans la suite du rapport pour construire le modèle binomial de Cox-Ross-Rubinstein.
+\end{document}
 
    3. Calibration sur données de marché
    3.1 Récupération des données
