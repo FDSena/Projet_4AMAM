@@ -1326,29 +1326,56 @@ En pratique, il existe un compromis entre précision et temps de calcul: doubler
 
 \chapter{Limites et perspectives}
 
-\section{Limites du modèle CRR}
+Le modèle de Cox-Ross-Rubinstein repose sur plusieurs hypothèses simplificatrices
+qui constituent autant de limites à sa portée pratique.
 
-\subsection{Hypothèse de volatilité constante}
+La première et la plus importante est l'hypothèse de volatilité constante.
+Dans notre implémentation, $\sigma$ est estimée une fois sur l'ensemble de la
+période historique et reste fixe pour toute la durée de valorisation. Or les
+données du CAC 40 montrent clairement que la volatilité varie dans le temps :
+elle a dépassé 60~\% annualisé lors du choc Covid de mars 2020, avant de
+redescendre à des niveaux bien inférieurs en 2021. Utiliser une volatilité
+historique calculée en période calme pour valoriser une option en période de
+crise conduit à sous-estimer le prix, et inversement. Ce phénomène, appelé
+\textit{volatility clustering}, est une limite structurelle de tous les modèles
+à volatilité constante.
 
-\subsection{Hypothèse de taux sans risque constant}
+Le taux sans risque est lui aussi supposé constant, fixé à $r = 2\%$ par an
+pour l'ensemble de la période. En pratique, ce taux dépend de la maturité
+considérée et évolue avec les conditions de marché. Sur la période 2018--2026,
+les taux ont connu des mouvements significatifs, notamment lors de la remontée
+rapide des taux directeurs à partir de 2022. Cette simplification introduit
+une erreur d'autant plus grande que la maturité de l'option est longue.
 
-\subsection{Discrétisation du temps}
+La discrétisation du temps est une autre source d'approximation. L'arbre
+binomial remplace la dynamique continue du sous-jacent par une succession de
+pas discrets. Bien que le prix CRR converge vers le prix de Black-Scholes
+lorsque $N \to +\infty$, pour un nombre fini d'étapes il subsiste une erreur
+de discrétisation. Cette erreur est cependant bien contrôlée dès $N = 100$,
+comme le montre l'analyse de convergence.
 
-\section{Limites liées aux données réelles}
+Au-delà des hypothèses du modèle lui-même, des limites apparaissent également
+du côté des données. Les rendements logarithmiques du CAC 40 présentent des
+queues de distribution plus épaisses que celles d'une loi normale, ainsi qu'une
+asymétrie négative : les chocs baissiers extrêmes sont plus fréquents que ce
+que le modèle prédit. De plus, l'absence de prix d'options observés sur le
+marché empêche toute validation empirique directe du prix théorique.
 
-\section{Limites liées à la calibration}
+Sur le plan de la calibration, la volatilité historique est un estimateur
+imparfait de la volatilité future, qui est la grandeur réellement pertinente
+pour la valorisation d'une option. L'intervalle de confiance calculé à 95~\%
+montre que cette estimation est entachée d'une incertitude non négligeable,
+qui se propage directement sur le prix théorique.
 
-\section{Limites liées à l’implémentation}
-
-\section{Améliorations possibles}
-
-\subsection{Utilisation d’une volatilité implicite}
-
-\subsection{Comparaison avec le modèle de Black-Scholes}
-
-\subsection{Augmentation du nombre d’étapes}
-
-\subsection{Utilisation de données d’options réelles}
+Plusieurs pistes permettraient d'améliorer le modèle. La plus naturelle serait
+d'utiliser une \textit{volatilité implicite} plutôt qu'historique : extraite
+des prix d'options observés sur le marché, elle reflète les anticipations des
+opérateurs et donne généralement une meilleure estimation du prix. Une
+comparaison systématique avec le modèle de Black-Scholes permettrait également
+de quantifier l'erreur de discrétisation pour différentes valeurs de $N$ et
+de valider la convergence numériquement. Enfin, l'accès à des données réelles
+de prix d'options cotées rendrait possible une évaluation empirique rigoureuse
+du modèle, en comparant les prix théoriques aux prix de marché observés.
 
 \newpage
 
