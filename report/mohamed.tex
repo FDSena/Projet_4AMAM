@@ -1,5 +1,8 @@
 \documentclass[11pt]{report}
 
+% ============================================================
+% PACKAGES
+% ============================================================
 
 \usepackage{amsmath}                            % Mathématiques
 \usepackage{amssymb}                            % Symboles mathématiques
@@ -15,12 +18,23 @@
 \usepackage{hyperref}                           % Liens
 \usepackage{indentfirst}                        % Indentation du premier paragraphe
 \usepackage{makecell}                           % Cellules de tableau
-\usepackage{microtype}                          % Typographie
+\usepackage[protrusion=true, expansion=false]{microtype}                        % Typographie
 \usepackage{pdfpages}                           % Inclusion de PDF
 \usepackage{setspace}                           % Interligne
 \usepackage{siunitx}                            % Unités
 \usepackage{soul}                               % Surlignage
 \usepackage{tocloft}                            % Table des matières
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[most]{tcolorbox}
+\newtcbtheorem[number within=chapter]{definition}{Définition}%
+{colback=gray!5,
+ colframe=black!60,
+ fonttitle=\bfseries,
+ coltitle=black,
+ sharp corners,
+ boxrule=0.5pt,
+ breakable}{def}
 
 
 
@@ -33,7 +47,7 @@
 
 \chapter{Implémentation informatique}
 
-Ce chapitre présente la mise en œuvre informatique du modèle de Cox-Ross-Rubinstein.
+Ce chapitre présente l'implémentation informatique du modèle de Cox-Ross-Rubinstein.
 Le projet est développé en Python et organisé en plusieurs modules indépendants,
 chacun ayant un rôle précis dans la chaîne de traitement allant de la récupération
 des données de marché au calcul du prix de l'option.
@@ -42,27 +56,19 @@ des données de marché au calcul du prix de l'option.
 \section{Architecture du projet}
 % ------------------------------------------------------------
 
-Le projet est structuré selon le principe de séparation des responsabilités :
-chaque module ne fait qu'une chose, et les dépendances entre modules suivent
-un sens unique, de la donnée brute vers le résultat final.
+L'architecture du projet suit le principe de séparation des concepts. Chaque module ne fait qu'une chose, puis les dépendances s'organisent de la donnée brute vers le résultat final.
 
 L'organisation des fichiers sources est la suivante :
 
-\begin{center}
-\begin{tabular}{ll}
-\toprule
-\textbf{Fichier} & \textbf{Rôle} \\
-\midrule
-\texttt{option.py}       & Définition de la classe \texttt{Option} \\
-\texttt{market\_data.py} & Téléchargement et préparation des données de marché \\
-\texttt{calibration.py}  & Estimation de la volatilité et calibration des paramètres CRR \\
-\texttt{crr.py}          & Construction de l'arbre binomial et calcul du prix \\
-\texttt{backtester.py}   & Évaluation du modèle sur plusieurs dates \\
-\bottomrule
-\end{tabular}
-\end{center}
+\begin{itemize}
+    \item \texttt{option.py}: Définition de la classe \texttt{Option}.
+    \item \texttt{market\_data.py}: Téléchargement et préparation des données de marché.
+    \item \texttt{calibration.py}: Estimation de la volatilité et calibration des paramètres CRR.
+    \item \texttt{crr.py}: Construction de l'arbre binomial et calcul du prix.
+    \item \texttt{backtester.py}: Évaluation du modèle sur plusieurs dates.
+\end{itemize}
 
-Le flux de données suit la chaîne logique suivante :
+Le flux de données suit la chaîne logique suivante:
 
 \begin{center}
 \texttt{market\_data.py}
@@ -74,36 +80,30 @@ $\;\longrightarrow\;$
 \texttt{backtester.py}
 \end{center}
 
-Le module \texttt{option.py} est transversal : il est utilisé par \texttt{crr.py}
-et \texttt{backtester.py} pour représenter l'option à valoriser.
-Les notebooks Jupyter orchestrent l'ensemble en important ces modules et en
-produisant les résultats numériques et graphiques du projet.
+Le module \texttt{option.py} est transversal: il est utilisé par \texttt{crr.py} 
+et \texttt{backtester.py} pour représenter l'option à valoriser. Les notebooks Jupyter orchestrent l'ensemble en important ces modules et en produisant les résultats numériques et graphiques du projet.
 
 % ------------------------------------------------------------
 \section{Classe \texttt{Option}}
 % ------------------------------------------------------------
 
-La classe \texttt{Option}, définie dans le fichier \texttt{option.py},
-représente une option financière par ses trois paramètres contractuels
-fondamentaux : le strike, la maturité et le type (call ou put).
+La classe \texttt{Option}, définie dans le fichier \texttt{option.py}, représente une option financière par ses trois paramètres contractuels fondamentaux: le strike, la maturité et le type (call ou put).
 
 \subsection{Attributs}
 
-Le constructeur \texttt{\_\_init\_\_} reçoit trois arguments :
+Le constructeur \texttt{\_\_init\_\_} reçoit trois arguments:
 
 \begin{itemize}
-    \item \texttt{strike} : le prix d'exercice $K$, doit être strictement positif ;
-    \item \texttt{maturity} : la maturité $T$ en années, doit être strictement positive ;
-    \item \texttt{option\_type} : une chaîne de caractères valant \texttt{'call'} ou \texttt{'put'}.
+    \item \texttt{strike}: le prix d'exercice $K$, doit être strictement positif;
+    \item \texttt{maturity}: la maturité $T$ en années, doit être strictement positive;
+    \item \texttt{option\_type}: une chaîne de caractères valant \texttt{'call'} ou \texttt{'put'}.
 \end{itemize}
 
 Ces trois valeurs sont stockées comme attributs de l'objet après vérification.
 
 \subsection{Méthode de calcul du payoff}
 
-La méthode \texttt{payoff(S)} calcule le gain obtenu à maturité pour un prix
-de sous-jacent $S_T = S$ donné. Elle implémente directement les formules
-théoriques :
+La méthode \texttt{payoff(S)} calcule le gain obtenu à maturité pour un prix de sous-jacent $S_T = S$ donné. Elle implémente directement les formules théoriques:
 
 \[
 \texttt{payoff}(S) =
@@ -120,11 +120,11 @@ avec la valeur de continuation pour les options américaines.
 \subsection{Vérification des paramètres}
 
 Dès l'instanciation, le constructeur lève une exception \texttt{ValueError}
-dans les cas suivants :
+dans les cas suivants:
 \begin{itemize}
-    \item \texttt{strike} $\leq 0$ : un prix d'exercice nul ou négatif est économiquement incohérent ;
-    \item \texttt{maturity} $\leq 0$ : une maturité nulle ou négative n'a pas de sens ;
-    \item \texttt{option\_type} différent de \texttt{'call'} ou \texttt{'put'} : toute autre valeur
+    \item \texttt{strike} $\leq 0$: un prix d'exercice nul ou négatif est économiquement incohérent;
+    \item \texttt{maturity} $\leq 0$: une maturité nulle ou négative n'a pas de sens;
+    \item \texttt{option\_type} différent de \texttt{'call'} ou \texttt{'put'}: toute autre valeur
     serait une erreur de saisie.
 \end{itemize}
 
@@ -149,32 +149,26 @@ croissant et renvoyées sous forme de \texttt{DataFrame}.
 
 La fonction principale d'entrée du module est \texttt{build\_dataset}, qui enchaîne
 toutes les étapes de traitement et retourne un \texttt{DataFrame} enrichi avec
-les variables dérivées nécessaires au projet :
+les variables dérivées nécessaires au projet:
 
-\begin{center}
-\begin{tabular}{ll}
-\toprule
-\textbf{Colonne} & \textbf{Description} \\
-\midrule
-\texttt{Close}          & Prix de clôture journalier \\
-\texttt{log\_return}    & Rendement logarithmique journalier \\
-\texttt{cum\_return}    & Rendement cumulé en base 100 \\
-\texttt{rolling\_vol\_21} & Volatilité glissante annualisée sur 21 jours \\
-\bottomrule
-\end{tabular}
-\end{center}
+\begin{itemize}
+    \item \texttt{Close}: Prix de clôture journalier.
+    \item \texttt{log\_return}: Rendement logarithmique journalier.
+    \item \texttt{cum\_return}: Rendement cumulé en base 100.
+    \item \texttt{rolling\_vol\_21}: Volatilité glissante annualisée sur 21 jours.
+\end{itemize}
 
 \subsection{Nettoyage des données}
 
 La fonction \texttt{clean\_data} effectue plusieurs opérations de nettoyage
-indispensables à la fiabilité des calculs :
+indispensables à la fiabilité des calculs:
 
 \begin{itemize}
     \item suppression des colonnes multi-niveaux éventuelles (\texttt{MultiIndex})
-    produites par \texttt{yfinance} ;
-    \item conversion de l'index en format \texttt{datetime} ;
-    \item suppression des doublons de dates (conservation de la première occurrence) ;
-    \item tri chronologique ascendant ;
+    produites par \texttt{yfinance};
+    \item conversion de l'index en format \texttt{datetime};
+    \item suppression des doublons de dates (conservation de la première occurrence);
+    \item tri chronologique ascendant;
     \item suppression des lignes contenant au moins une valeur manquante (\texttt{NaN}).
 \end{itemize}
 
@@ -251,23 +245,23 @@ directement exploitable par \texttt{crr.py} et les notebooks.
 \section{Module \texttt{crr}}
 % ------------------------------------------------------------
 
-Le module \texttt{crr.py} implémente le cœur du modèle de Cox-Ross-Rubinstein :
+Le module \texttt{crr.py} implémente le cœur du modèle de Cox-Ross-Rubinstein:
 la construction de l'arbre binomial des prix du sous-jacent, le calcul des
 payoffs terminaux et la rétropropagation permettant d'obtenir le prix de l'option.
 
 \subsection{Construction de l'arbre binomial}
 
-La fonction \texttt{build\_price\_tree(S0, u, d, n\_steps)} construit l'arbre
-des prix du sous-jacent. L'arbre est représenté comme une liste de listes :
+La fonction \texttt{build\_price\_tree(S\_0, u, d, n\_steps)} construit l'arbre
+des prix du sous-jacent. L'arbre est représenté comme une liste de listes:
 le niveau $i$ contient les $i+1$ nœuds de l'étape $i$, où le nœud $j$
-correspond au prix :
+correspond au prix:
 
 \[
 S_{i,j} = S_0 \cdot u^j \cdot d^{i-j}, \quad 0 \leq j \leq i.
 \]
 
 Cette représentation est efficace en mémoire car elle exploite la propriété de
-recombinaison de l'arbre CRR : un nœud atteint après une hausse puis une baisse
+recombinaison de l'arbre CRR: un nœud atteint après une hausse puis une baisse
 est identique à un nœud atteint après une baisse puis une hausse.
 
 \subsection{Calcul des payoffs terminaux}
@@ -281,7 +275,7 @@ d'eux en appelant la méthode \texttt{payoff} de l'objet \texttt{Option}.
 La fonction \texttt{backward\_induction} effectue la rétropropagation pour une
 option européenne. En partant des payoffs terminaux, elle remonte l'arbre
 niveau par niveau en appliquant à chaque nœud $(i, j)$ la formule d'actualisation
-risque-neutre :
+risque-neutre:
 
 \[
 V_{i,j} = e^{-r\,\Delta t}\!\left[p^* \cdot V_{i+1,\,j+1} + (1-p^*) \cdot V_{i+1,\,j}\right].
@@ -386,14 +380,14 @@ Le sous-jacent retenu est l'indice boursier CAC 40, identifié par le symbole
 \texttt{\^{}FCHI} sur la plateforme Yahoo Finance. La période d'observation
 couvre les données journalières du 1\textsuperscript{er} janvier 2018 au
 1\textsuperscript{er} juin 2026. Cette fenêtre temporelle est suffisamment longue
-pour inclure des épisodes de volatilité très différents : une phase de hausse
+pour inclure des épisodes de volatilité très différents: une phase de hausse
 régulière avant 2020, le choc de la crise Covid en mars 2020 avec une baisse
 brutale de l'indice et un pic de volatilité annualisée dépassant 60~\%, puis
 une période de reprise et de relative stabilité en 2021--2022.
 
 \subsection{Choix du strike}
 
-L'option est définie \textit{at-the-money} : le prix d'exercice $K$ est fixé
+L'option est définie \textit{at-the-money}: le prix d'exercice $K$ est fixé
 égal au dernier prix de clôture disponible de l'indice, soit $K = S_0$.
 Ce choix est classique dans les études pédagogiques car il permet de se
 concentrer sur la dynamique du modèle sans introduire un biais lié à la
@@ -401,22 +395,13 @@ moneyness de l'option.
 
 \subsection{Choix de la maturité}
 
-La maturité est fixée à $T = 1$ an. Ce choix est cohérent avec
-une volatilité exprimée en base annuelle et permet une comparaison directe
-entre call et put sans distorsion due à l'horizon temporel.
-Des maturités alternatives (3 mois, 6 mois, 2 ans) sont examinées dans
-l'analyse de sensibilité.
+La maturité est fixée à $T = 1$ an. Ce choix est cohérent avec une volatilité exprimée en base annuelle et permet une comparaison directe entre call et put sans distorsion due à l'horizon temporel. Des maturités alternatives (3 mois, 6 mois, 2 ans) sont examinées dans l'analyse de sensibilité.
 
 \subsection{Choix du nombre d'étapes}
 
-Le nombre d'étapes de l'arbre est fixé à $N = 100$.
-Ce choix résulte d'un compromis entre précision numérique et temps de calcul.
-L'analyse de convergence présentée en section~\ref{sec:influence_n} montre
-qu'à partir de $N = 100$, les variations du prix sont inférieures à quelques
-centimes, ce qui est suffisant pour les besoins du projet.
+Le nombre d'étapes de l'arbre est fixé à $N = 100$. Ce choix résulte d'un compromis entre précision numérique et temps de calcul. L'analyse de convergence présentée en section~\ref{sec:influence_n} montre qu'à partir de $N = 100$, les variations du prix sont inférieures à quelques centimes, ce qui est suffisant pour les besoins du projet.
 
-Le taux sans risque est fixé à $r = 2\%$ par an, une valeur raisonnable
-pour un marché européen sur la période considérée.
+Le taux sans risque est fixé à $r = 2\%$ par an, une valeur raisonnable pour un marché européen sur la période considérée.
 
 % ------------------------------------------------------------
 \section{Exemple d'arbre binomial}
@@ -440,25 +425,15 @@ $i = 3$ & $S_0 d^3$  & $S_0 d$   & $S_0 u d$ & $S_0 u^3$  \\
 \end{tabular}
 \end{center}
 
-On constate la propriété de recombinaison : le nœud central à $i=2$
-vaut $S_0 \cdot u \cdot d = S_0$ (car $d = 1/u$), indépendamment
-de l'ordre dans lequel la hausse et la baisse se produisent.
-Cette propriété réduit le nombre de nœuds distincts de $2^N$ à $\frac{N(N+1)}{2}+1$,
-ce qui rend le calcul efficace même pour des valeurs élevées de $N$.
+On constate la propriété de recombinaison: le nœud central à $i=2$ vaut $S_0 \cdot u \cdot d = S_0$ (car $d = 1/u$), indépendamment de l'ordre dans lequel la hausse et la baisse se produisent. Cette propriété réduit le nombre de nœuds distincts de $2^N$ à $\frac{N(N+1)}{2}+1$, ce qui rend le calcul efficace même pour des valeurs élevées de $N$.
 
-Les payoffs terminaux d'un call de strike $K = S_0$ sont alors calculés
-pour chacun des quatre nœuds de la dernière étape. Les nœuds inférieurs au
-strike donnent un payoff nul, et seuls les nœuds en hausse génèrent un gain.
-La rétropropagation remonte ensuite ces valeurs vers la racine.
+Les payoffs terminaux d'un call de strike $K = S_0$ sont alors calculés pour chacun des quatre nœuds de la dernière étape. Les nœuds inférieurs au strike donnent un payoff nul, et seuls les nœuds en hausse génèrent un gain. La rétropropagation remonte ensuite ces valeurs vers la racine.
 
 % ------------------------------------------------------------
 \section{Pricing d'un call européen}
 % ------------------------------------------------------------
 
-On valorise un call européen \textit{at-the-money} sur le CAC 40, avec
-$T = 1$ an, $N = 100$ étapes et $r = 2\%$. La volatilité historique
-annualisée est estimée sur l'ensemble de la période et vaut $\hat{\sigma}$,
-ce qui conduit aux paramètres calibrés :
+On valorise un call européen \textit{at-the-money} sur le CAC 40, avec $T = 1$ an, $N = 100$ étapes et $r = 2\%$. La volatilité historique annualisée est estimée sur l'ensemble de la période et vaut $\hat{\sigma}$, ce qui conduit aux paramètres calibrés suivants:
 
 \[
 u = e^{\hat{\sigma}\sqrt{\Delta t}}, \quad
@@ -466,102 +441,64 @@ d = \frac{1}{u}, \quad
 p^* = \frac{e^{r\,\Delta t} - d}{u - d}.
 \]
 
-La condition d'absence d'arbitrage est vérifiée : $0 < p^* < 1$.
+La condition d'absence d'arbitrage est vérifiée: $0 < p^* < 1$.
 
-La fonction \texttt{crr\_price} est appelée avec le paramètre
-\texttt{american=False}. La rétropropagation européenne applique à chaque
-nœud la formule d'actualisation risque-neutre et retourne le prix au nœud
-racine. Ce prix représente la prime théorique que l'acheteur doit payer pour
-acquérir le droit d'acheter l'indice au prix $K = S_0$ dans un an.
+La fonction \texttt{crr\_price} est appelée avec le paramètre \texttt{american=False}. La rétropropagation européenne applique à chaque nœud la formule d'actualisation risque-neutre et retourne le prix au nœud racine. Ce prix représente la prime théorique que l'acheteur doit payer pour acquérir le droit d'acheter l'indice au prix $K = S_0$ dans un an.
 
-L'interprétation économique est la suivante : plus la volatilité est élevée,
-plus la dispersion des prix terminaux est grande, et plus le call a de valeur —
-car les gains en cas de hausse sont illimités tandis que les pertes sont bornées
-par zéro.
+L'interprétation économique est la suivante: plus la volatilité est élevée, plus la dispersion des prix terminaux est grande, et plus le call a de valeur car les gains en cas de hausse sont illimités tandis que les pertes sont bornées par zéro.
 
 % ------------------------------------------------------------
 \section{Pricing d'un put européen}
 % ------------------------------------------------------------
 
-On valorise un put européen sur le même actif, avec les mêmes paramètres.
-Un nouvel objet \texttt{Option} est instancié avec \texttt{option\_type='put'}.
-Le payoff terminal de chaque nœud est désormais $\max(K - S_{N,j}, 0)$.
+On valorise un put européen sur le même actif, avec les mêmes paramètres. Un nouvel objet \texttt{Option} est instancié avec \texttt{option\_type='put'}. Le payoff terminal de chaque nœud est désormais $\max(K - S_{N,j}, 0)$.
 
-La rétropropagation est identique à celle du call européen : seule la
-définition du payoff change. Le prix obtenu est la prime théorique que
-l'acheteur du put doit payer pour le droit de vendre l'indice au prix
-$K = S_0$ dans un an.
+La rétropropagation est identique à celle du call européen: seule la définition du payoff change. Le prix obtenu est la prime théorique que l'acheteur du put doit payer pour le droit de vendre l'indice au prix $K = S_0$ dans un an.
 
-On vérifie la parité call-put, relation fondamentale de la théorie
-des options européennes :
+On vérifie la parité call-put, relation fondamentale de la théorie des options européennes:
 
 \[
 C - P = S_0 - K \cdot e^{-rT}.
 \]
 
-Pour une option \textit{at-the-money} ($K = S_0$), cette relation se réduit à :
+Pour une option \textit{at-the-money} ($K = S_0$), cette relation se réduit à:
 
 \[
 C - P = S_0 \left(1 - e^{-rT}\right) > 0,
 \]
 
-ce qui implique que le call européen vaut légèrement plus que le put européen
-de mêmes caractéristiques lorsque $r > 0$. Les résultats numériques obtenus
-sont bien conformes à cette relation.
+ce qui implique que le call européen vaut légèrement plus que le put européen de mêmes caractéristiques lorsque $r > 0$. Les résultats numériques obtenus sont bien conformes à cette relation.
 
 % ------------------------------------------------------------
 \section{Pricing d'une option américaine}
 % ------------------------------------------------------------
 
-On valorise à présent un put américain sur le CAC 40, avec les mêmes paramètres.
-La seule modification dans l'implémentation est le passage du paramètre
-\texttt{american=True} à la fonction \texttt{crr\_price}, qui appelle alors
-\texttt{backward\_induction\_american}.
+On valorise à présent un put américain sur le CAC 40, avec les mêmes paramètres. La seule modification dans l'implémentation est le passage du paramètre \texttt{american=True} à la fonction \texttt{crr\_price}, qui appelle alors \texttt{backward\_induction\_american}.
 
-À chaque nœud intermédiaire, la valeur de l'option est le maximum entre
-la valeur de continuation actualisée et la valeur d'exercice immédiat :
+À chaque nœud intermédiaire, la valeur de l'option est le maximum entre la valeur de continuation actualisée et la valeur d'exercice immédiat:
 
 \[
 V_{i,j} = \max\!\left(e^{-r\,\Delta t}\left[p^* V_{i+1,j+1} + (1-p^*)V_{i+1,j}\right],\;
 K - S_{i,j}\right).
 \]
 
-Le prix obtenu pour le put américain est supérieur ou égal à celui du put
-européen de mêmes caractéristiques. Cet écart, appelé \textit{prime d'exercice
-anticipé}, traduit la valeur de la flexibilité supplémentaire offerte par le
-contrat américain : il peut être optimal d'exercer le put avant maturité
-lorsque le sous-jacent est suffisamment bas.
+Le prix obtenu pour le put américain est supérieur ou égal à celui du put européen de mêmes caractéristiques. Cet écart, appelé \textit{prime d'exercice anticipé}, traduit la valeur de la flexibilité supplémentaire offerte par le contrat américain: il peut être optimal d'exercer le put avant maturité lorsque le sous-jacent est suffisamment bas.
 
-En revanche, pour un call américain sur un actif ne versant pas de dividendes,
-il n'est jamais optimal d'exercer avant maturité, et le prix du call américain
-est donc identique à celui du call européen. Ce résultat théorique est confirmé
-par les calculs numériques.
+En revanche, pour un call américain sur un actif ne versant pas de dividendes, il n'est jamais optimal d'exercer avant maturité, et le prix du call américain est donc identique à celui du call européen. Ce résultat théorique est confirmé par les calculs numériques.
 
 % ------------------------------------------------------------
 \section{Influence du nombre d'étapes}
 \label{sec:influence_n}
 % ------------------------------------------------------------
 
-On étudie la convergence du prix du call européen en fonction du nombre
-d'étapes $N$. Les valeurs $N \in \{25, 50, 100, 200, 500\}$ sont testées,
-tous les autres paramètres étant maintenus constants.
+On étudie la convergence du prix du call européen en fonction du nombre d'étapes $N$. Les valeurs $N \in \{25, 50, 100, 200, 500\}$ sont testées, tous les autres paramètres étant maintenus constants.
 
-Les résultats montrent une convergence rapide et monotone du prix vers
-une valeur limite. À partir de $N = 100$, les variations de prix entre
-deux valeurs consécutives de $N$ sont inférieures à quelques centimes,
-ce qui confirme que ce choix est suffisant pour les besoins du projet.
+Les résultats montrent une convergence rapide et monotone du prix vers une valeur limite. À partir de $N = 100$, les variations de prix entre deux valeurs consécutives de $N$ sont inférieures à quelques centimes, ce qui confirme que ce choix est suffisant pour les besoins du projet.
 
-Ce comportement est conforme au résultat théorique établi par Cox, Ross
-et Rubinstein : lorsque $N \to +\infty$, le prix CRR converge vers le
-prix de Black-Scholes. L'arbre binomial constitue ainsi une approximation
-discrète de la dynamique continue log-normale, et le raffinement du maillage
+Ce comportement est conforme au résultat théorique établi par Cox, Ross et Rubinstein: lorsque $N \to +\infty$, le prix CRR converge vers le prix de Black-Scholes. L'arbre binomial constitue ainsi une approximation discrète de la dynamique continue log-normale, et le raffinement du maillage
 améliore la précision de cette approximation.
 
-En pratique, il existe un compromis entre précision et temps de calcul :
-doubler $N$ divise par deux la taille du pas de temps $\Delta t$ et
-multiplie approximativement par quatre le nombre de nœuds de l'arbre.
-Le choix $N = 100$ offre une précision satisfaisante avec un temps
-d'exécution de l'ordre de la milliseconde.
+En pratique, il existe un compromis entre précision et temps de calcul: doubler $N$ divise par deux la taille du pas de temps $\Delta t$ et multiplie approximativement par quatre le nombre de nœuds de l'arbre. Le choix $N = 100$ offre une précision satisfaisante avec un temps d'exécution de l'ordre de la milliseconde.
 
 
 \end{document}
