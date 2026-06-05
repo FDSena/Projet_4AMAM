@@ -194,8 +194,13 @@ This work highlights the interest of the CRR model as a simple, progressive and 
 \chapter*{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
 
-% Introduction à rédiger.
-okoop,pl
+Les options financières occupent une place centrale dans les marchés financiers modernes. Elles permettent aux investisseurs de se couvrir contre des risques de marché, de spéculer sur l'évolution future d'un actif ou encore de construire des stratégies d'investissement élaborées. Leur valorisation constitue un enjeu fondamental, car le prix d'une option dépend de nombreux paramètres financiers et mathématiques dont l'interaction n'est pas toujours intuitive.
+
+Parmi les modèles de valorisation existants, le modèle binomial de Cox, Ross et Rubinstein, introduit en 1979, occupe une place particulière. Il repose sur une représentation discrète et progressive de l'évolution du prix d'un actif sous-jacent, ce qui le rend à la fois simple à comprendre et suffisamment puissant pour traiter des options européennes et américaines. Sa structure en arbre binomial permet de visualiser concrètement les différents scénarios possibles et de remonter progressivement vers le prix de l'option à la date initiale.
+
+L'objectif de ce rapport est de présenter de manière complète le modèle CRR, depuis ses fondements théoriques jusqu'à son implémentation informatique et sa validation empirique sur des données de marché réelles. Nous cherchons à répondre à la question suivante: dans quelle mesure le modèle CRR permet-il de valoriser de manière fiable des options financières à partir de données historiques ?
+
+Pour cela, le rapport s'articule autour de sept chapitres. Le chapitre~1 pose le cadre théorique financier en introduisant les notions fondamentales liées aux options: actif sous-jacent, prix d'exercice, maturité, payoff, options européennes et américaines. Le chapitre~2 présente le modèle de Cox-Ross-Rubinstein, sa construction par arbre binomial, la probabilité risque-neutre et le lien théorique avec le modèle continu de Black-Scholes. Le chapitre~3 est consacré à la calibration des paramètres du modèle à partir de données de marché réelles, en détaillant le calcul des rendements logarithmiques, l'estimation de la volatilité historique et le choix du taux sans risque. Le chapitre~4 décrit l'implémentation informatique du projet en Python, organisée en plusieurs modules indépendants couvrant la récupération des données, la calibration et le pricing. Le chapitre~5 présente les expérimentations numériques réalisées sur le CAC~40, avec le pricing de calls et puts européens, d'options américaines, et une analyse de la convergence en fonction du nombre d'étapes. Le chapitre~6 propose un backtest et une validation du modèle par comparaison avec le prix de Black-Scholes sur plusieurs actifs et dans le temps. Enfin, le chapitre~7 discute les limites du modèle et les pistes d'amélioration envisageables.
 
 \newpage
 
@@ -1325,21 +1330,21 @@ En pratique, il existe un compromis entre précision et temps de calcul: doubler
 
 La construction théorique du modèle CRR, exposée dans les chapitres
 précédents, appelle une vérification numérique à deux niveaux. Le
-premier est une validation sur le \textbf{sous-jacent} : la dynamique
+premier est une validation sur le \textbf{sous-jacent}: la dynamique
 discrète de l'arbre binomial est-elle cohérente avec les prix
 historiques observés ? Le second est une validation du \textbf{prix
-de l'option} : le prix produit par le modèle CRR est-il suffisamment
+de l'option}: le prix produit par le modèle CRR est-il suffisamment
 proche d'une valeur de référence ?
 
 Il convient de préciser d'emblée une limite importante de cette étude.
 On ne dispose pas de données de prix d'options réellement cotées sur
-le marché : les données récupérées via \texttt{yfinance} fournissent
+le marché: les données récupérées via \texttt{yfinance} fournissent
 uniquement les prix historiques du sous-jacent. La validation du prix
 de l'option repose donc sur une \textbf{comparaison entre modèles} :
 le \textbf{prix prédit} désigne le prix calculé par le modèle CRR, et
 le \textbf{prix de référence} désigne le prix analytique de
 Black-Scholes, introduit à la section~\ref{sec:lien-black-scholes}.
-Cette référence est justifiée par le résultat de convergence : lorsque
+Cette référence est justifiée par le résultat de convergence: lorsque
 $N \to \infty$, le prix CRR converge vers le prix de
 Black-Scholes~\cite{crr1979}.
 
@@ -1352,10 +1357,10 @@ longitudinale sur le CAC~40 (\texttt{\^{}FCHI}) et le Brent permet
 d'analyser la stabilité du modèle dans le temps à l'aide d'un backtest
 à fenêtre glissante. Les données couvrent la période du
 1\textsuperscript{er}~janvier~2022 au 1\textsuperscript{er}~juin~2025.
-Les paramètres retenus sont : maturité $T = 1$~an, $N = 100$ étapes,
+Les paramètres retenus sont: maturité $T = 1$~an, $N = 100$ étapes,
 call européen, $r = 3\,\%$, $K = S_0$ (\textit{at-the-money}).
 
-\section{Données historiques : prix et rendements du sous-jacent}
+\section{Données historiques: prix et rendements du sous-jacent}
 
 Avant toute valorisation, on analyse les données brutes afin de
 caractériser le comportement des actifs sur la période étudiée.
@@ -1402,7 +1407,7 @@ la trajectoire simulée est \textbf{une réalisation possible parmi une
 infinité}. Ce qui importe est que la \textbf{dispersion} et
 l'\textbf{ordre de grandeur} des mouvements soient cohérents avec les
 données historiques. C'est précisément ce que garantit la calibration
-de $\sigma$ : les facteurs $u = e^{\sigma\sqrt{\Delta t}}$ et
+de $\sigma$: les facteurs $u = e^{\sigma\sqrt{\Delta t}}$ et
 $d = e^{-\sigma\sqrt{\Delta t}}$ sont construits pour que la variance
 des log-rendements du modèle soit égale à $\sigma^2\Delta t$.
 
@@ -1461,7 +1466,7 @@ autour de $0{,}18\,\%$, ce qui est tout à fait satisfaisant d'un point
 de vue pratique~\cite{hull2018}.
 
 La figure~\ref{fig:validation_crr_bs} illustre visuellement ces
-résultats sur trois dimensions : comparaison des prix bruts, erreur
+résultats sur trois dimensions: comparaison des prix bruts, erreur
 relative par actif, et volatilité calibrée.
 
 \begin{figure}[H]
@@ -1482,7 +1487,7 @@ une propriété de la discrétisation et non de l'actif.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{img/comparaison_cac_brent.png}
-\caption{Comparaison CAC~40 / Brent : volatilité annualisée, prix
+\caption{Comparaison CAC~40 / Brent: volatilité annualisée, prix
 CRR vs Black-Scholes, et erreur relative.}
 \label{fig:comparaison_cac_brent}
 \end{figure}
@@ -1570,7 +1575,7 @@ figure~\ref{fig:backtest_prix_sigma}. D'abord, les courbes CRR et
 Black-Scholes sont visuellement superposées à toutes les dates,
 confirmant la stabilité de l'approximation à $N=100$ dans le temps.
 Ensuite, le prix de l'option suit fidèlement les variations de la
-volatilité : les périodes de hausse de $\sigma$ se traduisent
+volatilité: les périodes de hausse de $\sigma$ se traduisent
 directement par une hausse du prix de l'option, conformément à la
 théorie. Enfin, la volatilité du Brent est plus instable que celle
 du CAC~40, avec des pics plus prononcés, ce qui génère une plus
@@ -1607,8 +1612,8 @@ $N$ & Prix CRR & Prix BS & Erreur relative (\%) \\
 \centering
 \includegraphics[width=\textwidth]{img/convergence_crr.png}
 \caption{Convergence du prix CRR vers Black-Scholes en fonction de
-$N$ pour le CAC~40 et le Brent. Ligne du haut : prix CRR et
-référence BS. Ligne du bas : erreur relative correspondante.}
+$N$ pour le CAC~40 et le Brent. Ligne du haut: prix CRR et
+référence BS. Ligne du bas: erreur relative correspondante.}
 \label{fig:convergence_crr}
 \end{figure}
 
@@ -1621,7 +1626,7 @@ présentent une vitesse de convergence similaire.}
 \label{fig:convergence_comparaison}
 \end{figure}
 
-L'erreur relative décroît rapidement : elle passe d'environ $1\,\%$
+L'erreur relative décroît rapidement: elle passe d'environ $1\,\%$
 pour $N = 5$ à moins de $0{,}02\,\%$ pour $N = 500$, quel que soit
 l'actif. La convergence n'est pas strictement monotone — le prix CRR
 oscille autour de la limite Black-Scholes avec des oscillations
@@ -1651,7 +1656,7 @@ constante, log-normalité, absence de dividendes), et non l'adéquation
 du modèle aux prix effectivement pratiqués sur les marchés d'options.
 
 En second lieu, le Brent présente des comportements que ni CRR ni
-Black-Scholes ne capturent pleinement : sauts de prix liés à des
+Black-Scholes ne capturent pleinement: sauts de prix liés à des
 événements géopolitiques, queues de distribution plus épaisses qu'une
 loi normale, et effets de roulement de contrats à terme. Ces
 phénomènes constituent des pistes d'amélioration naturelles, discutées
@@ -1723,7 +1728,19 @@ du modèle, en comparant les prix théoriques aux prix de marché observés.
 \chapter*{Conclusion et perspectives}
 \addcontentsline{toc}{chapter}{Conclusion et perspectives}
 
-% Conclusion à rédiger.
+Ce rapport a présenté une étude complète du modèle de Cox-Ross-Rubinstein, depuis ses fondements théoriques jusqu'à sa validation empirique sur des données de marché réelles.
+
+Sur le plan théorique, nous avons établi le cadre mathématique nécessaire à la valorisation des options financières : définition du payoff, distinction entre options européennes et américaines, construction de l'arbre binomial, probabilité risque-neutre et actualisation des valeurs futures. Ce cadre, bien que reposant sur des hypothèses simplificatrices, offre une représentation cohérente et interprétable de la dynamique du prix d'un actif sous-jacent.
+
+Sur le plan de la calibration, nous avons montré comment extraire les paramètres du modèle à partir de données historiques : estimation de la volatilité annualisée par l'écart-type des rendements logarithmiques, calcul des facteurs de hausse et de baisse, et détermination de la probabilité risque-neutre. Cette étape est essentielle, car la qualité du prix obtenu dépend directement de la qualité de la calibration.
+
+Sur le plan numérique, les expérimentations menées sur le CAC~40 ont confirmé la cohérence du modèle. Les prix des calls et puts européens satisfont la parité call-put, le put américain vaut bien plus que son équivalent européen, et le prix CRR converge rapidement vers le prix de Black-Scholes à mesure que le nombre d'étapes $N$ augmente. Dès $N = 100$, l'erreur relative est inférieure à $0{,}2\,\%$, ce qui est tout à fait satisfaisant pour un usage pratique.
+
+Sur le plan de la validation, le backtest conduit sur six actifs de profils variés — valeurs du CAC~40 et Brent — confirme la stabilité et la robustesse de cette approximation. Les erreurs relatives, uniformément proches de $0{,}18\,\%$, montrent que l'écart entre CRR et Black-Scholes est une propriété de la discrétisation et non de l'actif considéré. L'étude longitudinale par fenêtre glissante révèle en outre que le prix de l'option suit fidèlement l'évolution de la volatilité calibrée dans le temps.
+
+Ces résultats soulignent l'intérêt pédagogique et pratique du modèle CRR comme outil de valorisation simple, progressif et interprétable. Cependant, ses hypothèses — volatilité constante, taux sans risque constant, absence de dividendes et de coûts de transaction — en limitent la portée dans des contextes de marché complexes.
+
+Plusieurs pistes permettraient d'aller plus loin. L'utilisation d'une volatilité implicite, extraite des prix d'options cotées, remplacerait avantageusement la volatilité historique et refléterait mieux les anticipations du marché. L'accès à des données réelles de prix d'options permettrait une validation empirique directe, au-delà de la comparaison entre modèles théoriques. Enfin, des extensions du modèle — telles que les arbres trinomiaux, les modèles à volatilité stochastique ou les modèles à sauts — constitueraient des prolongements naturels pour mieux capturer la complexité des marchés financiers réels.
 
 \newpage
 
