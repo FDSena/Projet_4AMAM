@@ -36,3 +36,5 @@ data/
 *.out
 *.log
 *.toc
+*.bbl
+*.blg
