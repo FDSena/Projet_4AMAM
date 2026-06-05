@@ -1323,6 +1323,10 @@ En pratique, il existe un compromis entre précision et temps de calcul: doubler
 % CHAPITRE 6
 % ============================================================
 
+% ============================================================
+% CHAPITRE 6 — Backtest et validation
+% ============================================================
+
 \chapter{Backtest et validation}
 
 \section{Objectif du backtest}
@@ -1333,18 +1337,18 @@ l'arbre binomial est-il suffisamment proche d'une valeur de référence ?
 Pour répondre à cette question, on met en place une procédure de
 \textbf{backtest} (ou validation numérique), dont le principe est de
 comparer systématiquement les prix calculés par le modèle CRR avec les
-prix fournis par le modèle de Black-Scholes~\cite{crr1979}.
+prix fournis par le modèle de Black-Scholes.
 
 Il est important de souligner d'emblée la convention adoptée. On ne
 dispose pas de données de prix d'options réellement cotées sur le marché.
 Le \textbf{prix prédit} désigne donc le prix calculé par le modèle CRR,
 et le \textbf{prix de référence} désigne le prix analytique de
-Black-Scholes. Cette référence théorique est justifiée par le résultat
-de convergence rappelé au chapitre précédent : lorsque le nombre d'étapes
-$N$ tend vers l'infini, le prix CRR converge vers le prix de
-Black-Scholes~\cite{crr1979}. Comparer CRR à Black-Scholes revient donc
-à mesurer la qualité de l'approximation discrète par rapport à la limite
-continue.
+Black-Scholes, introduit à la section~\ref{sec:lien-black-scholes}.
+Cette référence théorique est justifiée par le résultat de convergence
+rappelé dans ce même chapitre : lorsque le nombre d'étapes $N$ tend vers
+l'infini, le prix CRR converge vers le prix de Black-Scholes~\cite{crr1979}.
+Comparer CRR à Black-Scholes revient donc à mesurer la qualité de
+l'approximation discrète par rapport à la limite continue.
 
 Le backtest est conduit sur six actifs représentatifs : cinq grandes
 valeurs du CAC~40 — TotalEnergies (TTE.PA), LVMH (MC.PA), BNP~Paribas
@@ -1359,31 +1363,26 @@ $r = 3\,\%$ (taux de référence européen), et prix d'exercice $K = S_0$
 
 \section{Comparaison prix prédit / prix de référence}
 
-Dans le cas d'un call européen, le prix de Black-Scholes est donné par
-\[
-C_{\mathrm{BS}} = S_0 \Phi(d_1) - K e^{-rT}\Phi(d_2),
-\]
-où
-\[
-d_1 =
-\frac{
-\ln\left(\frac{S_0}{K}\right)
-+
-\left(r + \frac{\sigma^2}{2}\right)T
-}
-{\sigma\sqrt{T}},
-\qquad
-d_2 = d_1 - \sigma\sqrt{T}.
-\]
-
-La fonction $\Phi$ désigne la fonction de répartition de la loi normale centrée réduite.
-\medskip
-
 Pour chaque actif, la volatilité historique annualisée $\sigma$ est
 calibrée sur les log-rendements de la période considérée (voir
-section~\ref{sec:proba_risque_neutre}), puis utilisée à la fois dans
-le modèle CRR et dans la formule de Black-Scholes, de sorte que les
-deux prix soient bien comparables.
+chapitre~3), puis utilisée à la fois dans le modèle CRR et dans la
+formule de Black-Scholes rappelée ci-dessous, de sorte que les deux
+prix soient bien comparables.
+
+Pour un call européen, le prix de Black-Scholes est (voir
+section~\ref{sec:lien-black-scholes}) :
+\[
+C_{\mathrm{BS}} = S_0\,\Phi(d_1) - K\,e^{-rT}\,\Phi(d_2),
+\]
+avec
+\[
+d_1 = \frac{\ln(S_0/K) + (r + \sigma^2/2)\,T}{\sigma\sqrt{T}},
+\qquad
+d_2 = d_1 - \sigma\sqrt{T},
+\]
+où $\Phi$ désigne la fonction de répartition de la loi normale centrée
+réduite. Cette formule est évaluée avec les mêmes paramètres $S_0$,
+$K$, $T$, $r$ et $\sigma$ que ceux utilisés pour construire l'arbre CRR.
 
 Le tableau~\ref{tab:comparaison_crr_bs} regroupe les résultats obtenus.
 
@@ -1397,17 +1396,15 @@ Le tableau~\ref{tab:comparaison_crr_bs} regroupe les résultats obtenus.
 Actif & $S_0$ & $\sigma$ & $p^*$ & Prix CRR & Prix BS
       & Err.\ abs. & Err.\ rel.\ (\%) \\
 \midrule
-TotalEnergies & 59,98 & 0,2527 & 0,5176 & 9,3482 & 9,3655 & 0,0173 & 0,1847 \\
+TotalEnergies & 59,98  & 0,2527 & 0,5176 & 9,3482  & 9,3655  & 0,0173 & 0,1847 \\
 LVMH          & 567,60 & 0,2670 & 0,5172 & 93,3641 & 93,5326 & 0,1685 & 0,1802 \\
-BNP Paribas   & 71,88 & 0,3183 & 0,5158 & 14,0825 & 14,1083 & 0,0258 & 0,1829 \\
-Sanofi        & 95,38 & 0,1979 & 0,5192 & 11,6390 & 11,6604 & 0,0214 & 0,1836 \\
+BNP Paribas   & 71,88  & 0,3183 & 0,5158 & 14,0825 & 14,1083 & 0,0258 & 0,1829 \\
+Sanofi        & 95,38  & 0,1979 & 0,5192 & 11,6390 & 11,6604 & 0,0214 & 0,1836 \\
 Schneider     & 247,10 & 0,2452 & 0,5179 & 37,3960 & 37,4647 & 0,0687 & 0,1833 \\
-Brent         & 74,88 & 0,2950 & 0,5165 & 13,6611 & 13,6862 & 0,0251 & 0,1835 \\
+Brent         & 74,88  & 0,2950 & 0,5165 & 13,6611 & 13,6862 & 0,0251 & 0,1835 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\medskip
 
 On constate une très grande cohérence entre les deux colonnes de prix :
 pour chaque actif, le prix CRR à $N=100$ étapes reproduit fidèlement le
@@ -1432,34 +1429,22 @@ calibrée sur la période 2022--2025.}
 
 \section{Erreur absolue moyenne (MAE)}
 
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Erreur absolue moyenne (MAE)}
-
-\medskip
-Soient $\hat{V}_i$ le prix prédit par CRR et $V_i^{\text{BS}}$ le prix
+\begin{definition}{Erreur absolue moyenne (MAE)}{mae}
+Soient $\hat{V}_i$ le prix prédit par CRR et $V_i^{\mathrm{BS}}$ le prix
 de référence Black-Scholes pour l'actif $i$, avec $i = 1, \ldots, n$.
-L'\textit{erreur absolue moyenne} est :
-
-\begin{equation}
-    \text{MAE} = \frac{1}{n} \sum_{i=1}^{n} \bigl|\hat{V}_i - V_i^{\text{BS}}\bigr|
-\end{equation}
-
+L'\textit{erreur absolue moyenne} est définie par :
+\[
+\mathrm{MAE} = \frac{1}{n} \sum_{i=1}^{n} \bigl|\hat{V}_i - V_i^{\mathrm{BS}}\bigr|.
+\]
 Elle mesure, en moyenne, de combien (en valeur absolue) le prix CRR
 s'écarte du prix de référence. Plus la MAE est faible, plus les deux
 modèles sont en accord.
-\end{minipage}
-}
-
-\medskip
+\end{definition}
 
 Sur les six actifs du backtest, la MAE calculée est :
-
-\begin{equation}
-    \text{MAE} = 0{,}0545
-\end{equation}
+\[
+\mathrm{MAE} = 0{,}0545.
+\]
 
 Cette valeur correspond, en ordre de grandeur, à quelques centimes
 d'euro (ou de dollar pour le Brent). Compte tenu des prix absolus des
@@ -1471,36 +1456,24 @@ grand pour que l'arbre CRR s'approche de la limite continue.
 
 \section{Erreur quadratique moyenne (RMSE)}
 
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Erreur quadratique moyenne (RMSE)}
-
-\medskip
-La \textit{racine de l'erreur quadratique moyenne} est :
-
-\begin{equation}
-    \text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \bigl(\hat{V}_i -
-    V_i^{\text{BS}}\bigr)^2}
-\end{equation}
-
+\begin{definition}{Erreur quadratique moyenne (RMSE)}{rmse}
+La \textit{racine de l'erreur quadratique moyenne} est définie par :
+\[
+\mathrm{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n}
+\bigl(\hat{V}_i - V_i^{\mathrm{BS}}\bigr)^2}.
+\]
 Contrairement à la MAE, le RMSE pénalise davantage les grandes erreurs
-individuelles (car les écarts sont mis au carré avant d'être moyennés).
+individuelles, car les écarts sont mis au carré avant d'être moyennés.
 Un RMSE proche de la MAE indique que les erreurs sont homogènes d'un
 actif à l'autre ; un RMSE nettement supérieur signalerait l'existence
 d'un ou plusieurs actifs pour lesquels le modèle s'écarte sensiblement
 de la référence.
-\end{minipage}
-}
-
-\medskip
+\end{definition}
 
 Le RMSE obtenu sur les six actifs est :
-
-\begin{equation}
-    \text{RMSE} = 0{,}0648
-\end{equation}
+\[
+\mathrm{RMSE} = 0{,}0648.
+\]
 
 Le RMSE est légèrement supérieur à la MAE ($0{,}0648$ contre $0{,}0545$),
 ce qui indique la présence d'une légère hétérogénéité entre actifs. Cela
@@ -1510,10 +1483,8 @@ génère mécaniquement une erreur absolue plus grande ($0{,}17$\,€) même
 si son erreur relative reste du même ordre. Cette disparité est amplifiée
 dans le RMSE. En revanche, les erreurs relatives sont remarquablement
 uniformes autour de $0{,}18\,\%$, ce qui confirme que l'écart entre CRR
-et Black-Scholes est bien une propriété systématique du modèle, indépendante
-de l'actif.
-
-\medskip
+et Black-Scholes est bien une propriété systématique liée à la
+discrétisation, indépendante de l'actif considéré.
 
 Le tableau~\ref{tab:metriques_globales} récapitule l'ensemble des métriques
 calculées.
@@ -1527,11 +1498,11 @@ $N=100$).}
 \toprule
 Métrique & Valeur \\
 \midrule
-MAE (erreur absolue moyenne)        & 0,054 8 \\
-RMSE (racine de l'erreur quadratique) & 0,064 8 \\
-Erreur moyenne (biais)              & $-$0,054 8 \\
-Erreur absolue maximale             & 0,168 5 \\
-Erreur relative moyenne             & 0,183 1\,\% \\
+MAE (erreur absolue moyenne)          & $0{,}0548$ \\
+RMSE (racine de l'erreur quadratique) & $0{,}0648$ \\
+Erreur moyenne (biais)                & $-0{,}0548$ \\
+Erreur absolue maximale               & $0{,}1685$ \\
+Erreur relative moyenne               & $0{,}1831\,\%$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1541,9 +1512,9 @@ Erreur relative moyenne             & 0,183 1\,\% \\
 \subsection{Qualité globale de l'approximation}
 
 Les résultats du backtest sont convergents : le modèle CRR à $N = 100$
-étapes approxime le prix de Black-Scholes avec une erreur relative
-de l'ordre de $0{,}18\,\%$ sur tous les actifs testés, quels que soient
-le niveau de volatilité ou le prix absolu du sous-jacent. Cette performance
+étapes approxime le prix de Black-Scholes avec une erreur relative de
+l'ordre de $0{,}18\,\%$ sur tous les actifs testés, quels que soient le
+niveau de volatilité ou le prix absolu du sous-jacent. Cette performance
 illustre concrètement la convergence théorique démontrée dans
 Cox~\textit{et al.}~\cite{crr1979} : pour un nombre d'étapes suffisamment
 grand, les deux modèles donnent des prix pratiquement identiques.
@@ -1551,8 +1522,9 @@ grand, les deux modèles donnent des prix pratiquement identiques.
 Le biais moyen ($-0{,}0548$) est légèrement négatif, ce qui signifie que
 le modèle CRR sous-estime très légèrement le prix de Black-Scholes. Ce
 phénomène est connu : pour $N$ fini, le prix CRR oscille autour de la
-valeur Black-Scholes et converge en présentant des oscillations de plus
-en plus amorties à mesure que $N$ augmente~\cite{hull2018}.
+valeur Black-Scholes en présentant des oscillations de plus en plus
+amorties à mesure que $N$ augmente, comme le confirme l'étude de
+convergence ci-dessous~\cite{hull2018}.
 
 \subsection{Étude de convergence en fonction de $N$}
 
@@ -1564,19 +1536,20 @@ et la figure~\ref{fig:convergence_crr} présentent les résultats.
 \begin{table}[H]
 \centering
 \caption{Convergence du prix CRR vers Black-Scholes en fonction de $N$
-         (TotalEnergies, call ATM, $T=1$~an, $r=3\,\%$, $\sigma \approx 0{,}253$).}
+         (TotalEnergies, call ATM, $T=1$~an, $r=3\,\%$,
+         $\sigma \approx 0{,}253$).}
 \label{tab:convergence}
 \begin{tabular}{rrrr}
 \toprule
 $N$ & Prix CRR & Prix BS & Erreur relative (\%) \\
 \midrule
-    5 & 9,272 6 & 9,365 5 & 0,993 \\
-   10 & 9,412 1 & 9,365 5 & 0,497 \\
-   25 & 9,384 9 & 9,365 5 & 0,207 \\
-   50 & 9,375 4 & 9,365 5 & 0,106 \\
-  100 & 9,348 2 & 9,365 5 & 0,185 \\
-  200 & 9,360 3 & 9,365 5 & 0,055 \\
-  500 & 9,363 9 & 9,365 5 & 0,017 \\
+    5   & 9,272 6 & 9,365 5 & 0,993 \\
+   10   & 9,412 1 & 9,365 5 & 0,497 \\
+   25   & 9,384 9 & 9,365 5 & 0,207 \\
+   50   & 9,375 4 & 9,365 5 & 0,106 \\
+  100   & 9,348 2 & 9,365 5 & 0,185 \\
+  200   & 9,360 3 & 9,365 5 & 0,055 \\
+  500   & 9,363 9 & 9,365 5 & 0,017 \\
 1\,000 & 9,364 7 & 9,365 5 & 0,009 \\
 \bottomrule
 \end{tabular}
@@ -1603,7 +1576,8 @@ prix CRR oscille légèrement autour de la limite Black-Scholes, avec des
 oscillations alternées selon la parité de $N$ (phénomène bien documenté
 dans la littérature~\cite{hull2018}). Ces oscillations s'amortissent
 néanmoins rapidement et n'ont aucune conséquence pratique dès lors que
-$N \geq 50$.
+$N \geq 50$. Ce comportement est cohérent avec les observations du
+chapitre~5 sur l'influence du nombre d'étapes.
 
 \subsection{Limites du backtest}
 
@@ -1622,8 +1596,8 @@ théoriques et les prix réels du marché sont la \textit{volatilité
 implicite} (qui n'est pas constante et génère le phénomène de
 \textit{smile} de volatilité) et les coûts de transaction. Ces effets,
 absents du modèle CRR comme du modèle Black-Scholes dans leurs
-formulations standards, constituent des pistes d'amélioration
-naturelles~\cite{hull2018}.
+formulations standards, sont discutés plus en détail dans le
+chapitre~7~\cite{hull2018}.
 
 \medskip
 
@@ -1634,7 +1608,6 @@ $0{,}02\,\%$ à $N = 500$ étapes. Cette convergence rapide, combinée à
 la flexibilité de l'arbre binomial pour la valorisation des options
 américaines, justifie pleinement l'utilisation du modèle CRR comme outil
 de référence en finance quantitative.
-
 
 % ============================================================
 % CHAPITRE 7
