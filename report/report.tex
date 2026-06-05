@@ -1318,11 +1318,16 @@ En pratique, il existe un compromis entre précision et temps de calcul: doubler
 % CHAPITRE 6
 % ============================================================
 
+% ============================================================
+% CHAPITRE 6 — Backtest et validation
+% ============================================================
+
 \chapter{Backtest et validation}
 
 \section{Objectif du backtest}
 
 La construction théorique du modèle CRR, exposée dans les chapitres
+<<<<<<< HEAD
 précédents, appelle une vérification numérique: le prix produit par
 l'arbre binomial est-il suffisamment proche d'une valeur de référence ?
 Pour répondre à cette question, on met en place une procédure de
@@ -1351,36 +1356,117 @@ Les paramètres retenus sont les suivants: maturité $T = 1$~an, nombre
 d'étapes $N = 100$, type d'option~: call européen, taux sans risque
 $r = 3\,\%$ (taux de référence européen), et prix d'exercice $K = S_0$
 (option \textit{at-the-money}).
+=======
+précédents, appelle une vérification numérique à deux niveaux. Le
+premier est une validation sur le \textbf{sous-jacent} : la dynamique
+discrète de l'arbre binomial est-elle cohérente avec les prix
+historiques observés ? Le second est une validation du \textbf{prix
+de l'option} : le prix produit par le modèle CRR est-il suffisamment
+proche d'une valeur de référence ?
+
+Il convient de préciser d'emblée une limite importante de cette étude.
+On ne dispose pas de données de prix d'options réellement cotées sur
+le marché : les données récupérées via \texttt{yfinance} fournissent
+uniquement les prix historiques du sous-jacent. La validation du prix
+de l'option repose donc sur une \textbf{comparaison entre modèles} :
+le \textbf{prix prédit} désigne le prix calculé par le modèle CRR, et
+le \textbf{prix de référence} désigne le prix analytique de
+Black-Scholes, introduit à la section~\ref{sec:lien-black-scholes}.
+Cette référence est justifiée par le résultat de convergence : lorsque
+$N \to \infty$, le prix CRR converge vers le prix de
+Black-Scholes~\cite{crr1979}.
+
+Le backtest est conduit sur deux ensembles d'actifs complémentaires.
+D'une part, six valeurs du CAC~40 — TotalEnergies (TTE.PA), LVMH
+(MC.PA), BNP~Paribas (BNP.PA), Sanofi (SAN.PA), Schneider Electric
+(SU.PA) et le Brent (BZ=F) — permettent une comparaison transversale
+sur des profils de volatilité variés. D'autre part, une étude
+longitudinale sur le CAC~40 (\texttt{\^{}FCHI}) et le Brent permet
+d'analyser la stabilité du modèle dans le temps à l'aide d'un backtest
+à fenêtre glissante. Les données couvrent la période du
+1\textsuperscript{er}~janvier~2022 au 1\textsuperscript{er}~juin~2025.
+Les paramètres retenus sont : maturité $T = 1$~an, $N = 100$ étapes,
+call européen, $r = 3\,\%$, $K = S_0$ (\textit{at-the-money}).
+
+\section{Données historiques : prix et rendements du sous-jacent}
+
+Avant toute valorisation, on analyse les données brutes afin de
+caractériser le comportement des actifs sur la période étudiée.
+La figure~\ref{fig:prix_sousjacents} représente l'évolution des prix
+de clôture du CAC~40 et du Brent, et la
+figure~\ref{fig:rendements_log} les rendements logarithmiques
+journaliers correspondants.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/prix_sousjacents.png}
+\caption{Évolution historique des prix de clôture du CAC~40 et du
+Brent sur la période 2022--2025.}
+\label{fig:prix_sousjacents}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/rendements_log.png}
+\caption{Rendements logarithmiques journaliers du CAC~40 et du Brent
+sur la période 2022--2025.}
+\label{fig:rendements_log}
+\end{figure}
+
+On observe que le Brent présente une volatilité annualisée plus élevée
+et des chocs de grande amplitude plus fréquents que le CAC~40. Ce
+dernier est un indice diversifié sur 40 grandes capitalisations, ce
+qui lisse naturellement les chocs individuels. Le Brent, en revanche,
+dépend de facteurs géopolitiques, des décisions de production de
+l'OPEP et de cycles macroéconomiques globaux, qui génèrent des régimes
+de volatilité plus instables~\cite{hull2018}.
+
+\section{Comparaison prix réel du sous-jacent et trajectoire simulée}
+
+Avant de comparer les prix d'options, on vérifie que la dynamique
+discrète de l'arbre CRR est cohérente avec les prix historiques
+observés. Pour cela, on simule une trajectoire du sous-jacent en
+appliquant à chaque pas le facteur $u$ ou $d$ selon la probabilité
+risque-neutre $p^*$, en partant du premier prix de clôture de la
+période.
+
+Cette comparaison ne cherche pas à reproduire le chemin réel observé :
+la trajectoire simulée est \textbf{une réalisation possible parmi une
+infinité}. Ce qui importe est que la \textbf{dispersion} et
+l'\textbf{ordre de grandeur} des mouvements soient cohérents avec les
+données historiques. C'est précisément ce que garantit la calibration
+de $\sigma$ : les facteurs $u = e^{\sigma\sqrt{\Delta t}}$ et
+$d = e^{-\sigma\sqrt{\Delta t}}$ sont construits pour que la variance
+des log-rendements du modèle soit égale à $\sigma^2\Delta t$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/trajectoire_simulee.png}
+\caption{Comparaison entre le prix réel observé et une trajectoire
+simulée par le modèle CRR, pour le CAC~40 (gauche) et le Brent
+(droite). Les deux trajectoires évoluent dans des plages de prix
+comparables, ce qui confirme la cohérence de la calibration.}
+\label{fig:trajectoire_simulee}
+\end{figure}
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
 \section{Comparaison prix prédit / prix de référence}
+\label{sec:comparaison_prix}
 
-Dans le cas d'un call européen, le prix de Black-Scholes est donné par
+Pour chaque actif, la volatilité historique annualisée $\sigma$ est
+calibrée sur les log-rendements de la période (voir chapitre~3), puis
+utilisée à la fois dans le modèle CRR et dans la formule de
+Black-Scholes rappelée à la section~\ref{sec:lien-black-scholes} :
 \[
-C_{\mathrm{BS}} = S_0 \Phi(d_1) - K e^{-rT}\Phi(d_2),
-\]
-où
-\[
-d_1 =
-\frac{
-\ln\left(\frac{S_0}{K}\right)
-+
-\left(r + \frac{\sigma^2}{2}\right)T
-}
-{\sigma\sqrt{T}},
-\qquad
+C_{\mathrm{BS}} = S_0\,\Phi(d_1) - K\,e^{-rT}\,\Phi(d_2),
+\quad
+d_1 = \frac{\ln(S_0/K)+(r+\sigma^2/2)\,T}{\sigma\sqrt{T}},
+\quad
 d_2 = d_1 - \sigma\sqrt{T}.
 \]
 
-La fonction $\Phi$ désigne la fonction de répartition de la loi normale centrée réduite.
-\medskip
-
-Pour chaque actif, la volatilité historique annualisée $\sigma$ est
-calibrée sur les log-rendements de la période considérée (voir
-section~\ref{sec:proba_risque_neutre}), puis utilisée à la fois dans
-le modèle CRR et dans la formule de Black-Scholes, de sorte que les
-deux prix soient bien comparables.
-
-Le tableau~\ref{tab:comparaison_crr_bs} regroupe les résultats obtenus.
+Le tableau~\ref{tab:comparaison_crr_bs} présente les résultats obtenus
+sur les six actifs.
 
 \begin{table}[H]
 \centering
@@ -1392,105 +1478,90 @@ Le tableau~\ref{tab:comparaison_crr_bs} regroupe les résultats obtenus.
 Actif & $S_0$ & $\sigma$ & $p^*$ & Prix CRR & Prix BS
       & Err.\ abs. & Err.\ rel.\ (\%) \\
 \midrule
-TotalEnergies & 59,98 & 0,2527 & 0,5176 & 9,3482 & 9,3655 & 0,0173 & 0,1847 \\
+TotalEnergies & 59,98  & 0,2527 & 0,5176 & 9,3482  & 9,3655  & 0,0173 & 0,1847 \\
 LVMH          & 567,60 & 0,2670 & 0,5172 & 93,3641 & 93,5326 & 0,1685 & 0,1802 \\
-BNP Paribas   & 71,88 & 0,3183 & 0,5158 & 14,0825 & 14,1083 & 0,0258 & 0,1829 \\
-Sanofi        & 95,38 & 0,1979 & 0,5192 & 11,6390 & 11,6604 & 0,0214 & 0,1836 \\
+BNP Paribas   & 71,88  & 0,3183 & 0,5158 & 14,0825 & 14,1083 & 0,0258 & 0,1829 \\
+Sanofi        & 95,38  & 0,1979 & 0,5192 & 11,6390 & 11,6604 & 0,0214 & 0,1836 \\
 Schneider     & 247,10 & 0,2452 & 0,5179 & 37,3960 & 37,4647 & 0,0687 & 0,1833 \\
-Brent         & 74,88 & 0,2950 & 0,5165 & 13,6611 & 13,6862 & 0,0251 & 0,1835 \\
+Brent         & 74,88  & 0,2950 & 0,5165 & 13,6611 & 13,6862 & 0,0251 & 0,1835 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\medskip
-
 On constate une très grande cohérence entre les deux colonnes de prix :
-pour chaque actif, le prix CRR à $N=100$ étapes reproduit fidèlement le
-prix de Black-Scholes. Les erreurs absolues sont de l'ordre de quelques
-centimes, voire de quelques fractions de centime, et les erreurs relatives
-se situent toutes autour de $0{,}18\,\%$, ce qui est tout à fait
-satisfaisant d'un point de vue pratique~\cite{hull2018}.
+pour chaque actif, le prix CRR à $N=100$ étapes reproduit fidèlement
+le prix de Black-Scholes. Les erreurs relatives se situent toutes
+autour de $0{,}18\,\%$, ce qui est tout à fait satisfaisant d'un point
+de vue pratique~\cite{hull2018}.
 
+<<<<<<< HEAD
 La figure~\ref{fig:validation_crr_bs} illustre visuellement ces résultats
 sur les trois dimensions pertinentes: la comparaison des prix bruts,
 l'erreur relative par actif et la volatilité calibrée.
+=======
+La figure~\ref{fig:validation_crr_bs} illustre visuellement ces
+résultats sur trois dimensions : comparaison des prix bruts, erreur
+relative par actif, et volatilité calibrée.
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{img/validation_crr_bs.png}
 \caption{Comparaison CRR / Black-Scholes sur six actifs. (a)~Prix CRR
-et prix Black-Scholes côte à côte. (b)~Erreur relative par actif, avec
-la moyenne indiquée en pointillés. (c)~Volatilité historique annualisée
-calibrée sur la période 2022--2025.}
+et Black-Scholes côte à côte. (b)~Erreur relative par actif, avec la
+moyenne en pointillés. (c)~Volatilité historique annualisée.}
 \label{fig:validation_crr_bs}
 \end{figure}
 
-\section{Erreur absolue moyenne (MAE)}
+La figure~\ref{fig:comparaison_cac_brent} complète cette analyse en
+confrontant directement le CAC~40 et le Brent sur les mêmes dimensions.
+Malgré des volatilités différentes, les deux actifs présentent une
+erreur relative comparable, ce qui confirme que l'écart CRR / BS est
+une propriété de la discrétisation et non de l'actif.
 
-\medskip
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{img/comparaison_cac_brent.png}
+\caption{Comparaison CAC~40 / Brent : volatilité annualisée, prix
+CRR vs Black-Scholes, et erreur relative.}
+\label{fig:comparaison_cac_brent}
+\end{figure}
 
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Erreur absolue moyenne (MAE)}
+\section{Métriques globales d'erreur}
 
-\medskip
-Soient $\hat{V}_i$ le prix prédit par CRR et $V_i^{\text{BS}}$ le prix
-de référence Black-Scholes pour l'actif $i$, avec $i = 1, \ldots, n$.
-L'\textit{erreur absolue moyenne} est :
-
-\begin{equation}
-    \text{MAE} = \frac{1}{n} \sum_{i=1}^{n} \bigl|\hat{V}_i - V_i^{\text{BS}}\bigr|
-\end{equation}
-
-Elle mesure, en moyenne, de combien (en valeur absolue) le prix CRR
+\begin{definition}{Erreur absolue moyenne (MAE)}{mae}
+Soient $\hat{V}_i$ le prix prédit par CRR et $V_i^{\mathrm{BS}}$ le
+prix de référence Black-Scholes pour l'actif $i$, avec
+$i = 1, \ldots, n$. L'\textit{erreur absolue moyenne} est :
+\[
+\mathrm{MAE} = \frac{1}{n}\sum_{i=1}^{n}
+\bigl|\hat{V}_i - V_i^{\mathrm{BS}}\bigr|.
+\]
+Elle mesure en moyenne de combien (en valeur absolue) le prix CRR
 s'écarte du prix de référence. Plus la MAE est faible, plus les deux
 modèles sont en accord.
-\end{minipage}
-}
+\end{definition}
 
-\medskip
-
-Sur les six actifs du backtest, la MAE calculée est :
-
-\begin{equation}
-    \text{MAE} = 0{,}0545
-\end{equation}
-
-Cette valeur correspond, en ordre de grandeur, à quelques centimes
-d'euro (ou de dollar pour le Brent). Compte tenu des prix absolus des
-actifs — qui s'échelonnent de $\approx 60$\,€ (TotalEnergies) à
-$\approx 568$\,€ (LVMH) — une erreur absolue moyenne de $0{,}05$\,€
-sur la prime de l'option doit être interprétée comme un très bon résultat.
-Elle s'explique directement par le fait que $N = 100$ est suffisamment
-grand pour que l'arbre CRR s'approche de la limite continue.
-
-\section{Erreur quadratique moyenne (RMSE)}
-
-\medskip
-
-\noindent\fbox{%
-\begin{minipage}{0.96\textwidth}
-\textbf{Définition — Erreur quadratique moyenne (RMSE)}
-
-\medskip
+\begin{definition}{Erreur quadratique moyenne (RMSE)}{rmse}
 La \textit{racine de l'erreur quadratique moyenne} est :
-
-\begin{equation}
-    \text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \bigl(\hat{V}_i -
-    V_i^{\text{BS}}\bigr)^2}
-\end{equation}
-
+\[
+\mathrm{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}
+\bigl(\hat{V}_i - V_i^{\mathrm{BS}}\bigr)^2}.
+\]
 Contrairement à la MAE, le RMSE pénalise davantage les grandes erreurs
-individuelles (car les écarts sont mis au carré avant d'être moyennés).
-Un RMSE proche de la MAE indique que les erreurs sont homogènes d'un
-actif à l'autre ; un RMSE nettement supérieur signalerait l'existence
-d'un ou plusieurs actifs pour lesquels le modèle s'écarte sensiblement
-de la référence.
-\end{minipage}
-}
+individuelles. Un RMSE proche de la MAE indique que les erreurs sont
+homogènes d'un actif à l'autre.
+\end{definition}
 
-\medskip
+Sur les six actifs, les métriques obtenues à $N = 100$ sont les
+suivantes :
+\[
+\mathrm{MAE} = 0{,}0545,
+\qquad
+\mathrm{RMSE} = 0{,}0648.
+\]
 
+<<<<<<< HEAD
 Le RMSE obtenu sur les six actifs est :
 
 \begin{equation}
@@ -1512,29 +1583,43 @@ de l'actif.
 
 Le tableau~\ref{tab:metriques_globales} récapitule l'ensemble des métriques
 calculées.
+=======
+Le RMSE est légèrement supérieur à la MAE, ce qui reflète l'erreur
+absolue plus grande de LVMH dont le prix absolu est bien plus élevé
+que les autres ($S_0 \approx 568$\,€). Les erreurs \textit{relatives}
+restent en revanche remarquablement uniformes autour de $0{,}18\,\%$,
+ce qui confirme que l'écart est lié à la discrétisation et non à
+l'actif. Le tableau~\ref{tab:metriques_globales} résume l'ensemble
+des métriques.
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
 \begin{table}[H]
 \centering
-\caption{Métriques globales d'erreur — CRR vs Black-Scholes (six actifs,
-$N=100$).}
+\caption{Métriques globales d'erreur — CRR vs Black-Scholes
+(six actifs, $N=100$).}
 \label{tab:metriques_globales}
 \begin{tabular}{lr}
 \toprule
 Métrique & Valeur \\
 \midrule
-MAE (erreur absolue moyenne)        & 0,054 8 \\
-RMSE (racine de l'erreur quadratique) & 0,064 8 \\
-Erreur moyenne (biais)              & $-$0,054 8 \\
-Erreur absolue maximale             & 0,168 5 \\
-Erreur relative moyenne             & 0,183 1\,\% \\
+MAE  (erreur absolue moyenne)         & $0{,}0548$ \\
+RMSE (racine de l'erreur quadratique) & $0{,}0648$ \\
+Erreur moyenne (biais)                & $-0{,}0548$ \\
+Erreur absolue maximale               & $0{,}1685$ \\
+Erreur relative moyenne               & $0{,}1831\,\%$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Analyse des résultats}
+\section{Évolution dynamique du prix de l'option — backtest temporel}
 
-\subsection{Qualité globale de l'approximation}
+Pour aller au-delà d'un calcul ponctuel, on recalibre la volatilité à
+chaque date sur une \textbf{fenêtre glissante de 252 jours} (un an de
+bourse), puis on calcule le prix théorique de l'option par CRR et par
+Black-Scholes. Cette approche permet d'observer comment les prix
+évoluent dans le temps en fonction des régimes de volatilité.
 
+<<<<<<< HEAD
 Les résultats du backtest sont convergents: le modèle CRR à $N = 100$
 étapes approxime le prix de Black-Scholes avec une erreur relative
 de l'ordre de $0{,}18\,\%$ sur tous les actifs testés, quels que soient
@@ -1548,30 +1633,51 @@ le modèle CRR sous-estime très légèrement le prix de Black-Scholes. Ce
 phénomène est connu: pour $N$ fini, le prix CRR oscille autour de la
 valeur Black-Scholes et converge en présentant des oscillations de plus
 en plus amorties à mesure que $N$ augmente~\cite{hull2018}.
+=======
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{img/backtest_prix_sigma.png}
+\caption{Évolution temporelle du prix théorique de l'option (CRR et
+Black-Scholes) et de la volatilité calibrée sur fenêtre glissante de
+252 jours, pour le CAC~40 (colonne gauche) et le Brent (colonne
+droite).}
+\label{fig:backtest_prix_sigma}
+\end{figure}
 
-\subsection{Étude de convergence en fonction de $N$}
+Plusieurs observations ressortent de la
+figure~\ref{fig:backtest_prix_sigma}. D'abord, les courbes CRR et
+Black-Scholes sont visuellement superposées à toutes les dates,
+confirmant la stabilité de l'approximation à $N=100$ dans le temps.
+Ensuite, le prix de l'option suit fidèlement les variations de la
+volatilité : les périodes de hausse de $\sigma$ se traduisent
+directement par une hausse du prix de l'option, conformément à la
+théorie. Enfin, la volatilité du Brent est plus instable que celle
+du CAC~40, avec des pics plus prononcés, ce qui génère une plus
+grande variabilité du prix de l'option dans le temps.
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
-Pour illustrer ce comportement de façon quantitative, on a conduit une
-étude de convergence sur l'actif TotalEnergies, en faisant varier le
-nombre d'étapes $N$ de 5 à 1\,000. Le tableau~\ref{tab:convergence}
-et la figure~\ref{fig:convergence_crr} présentent les résultats.
+\section{Étude de convergence en fonction de $N$}
+
+Pour illustrer la convergence théorique de façon quantitative, on
+fait varier $N$ de 5 à 1\,000 sur l'ensemble des actifs.
 
 \begin{table}[H]
 \centering
-\caption{Convergence du prix CRR vers Black-Scholes en fonction de $N$
-         (TotalEnergies, call ATM, $T=1$~an, $r=3\,\%$, $\sigma \approx 0{,}253$).}
+\caption{Convergence du prix CRR vers Black-Scholes en fonction de
+$N$ (TotalEnergies, call ATM, $T=1$~an, $r=3\,\%$,
+$\sigma \approx 0{,}253$).}
 \label{tab:convergence}
 \begin{tabular}{rrrr}
 \toprule
 $N$ & Prix CRR & Prix BS & Erreur relative (\%) \\
 \midrule
-    5 & 9,272 6 & 9,365 5 & 0,993 \\
-   10 & 9,412 1 & 9,365 5 & 0,497 \\
-   25 & 9,384 9 & 9,365 5 & 0,207 \\
-   50 & 9,375 4 & 9,365 5 & 0,106 \\
-  100 & 9,348 2 & 9,365 5 & 0,185 \\
-  200 & 9,360 3 & 9,365 5 & 0,055 \\
-  500 & 9,363 9 & 9,365 5 & 0,017 \\
+    5   & 9,272 6 & 9,365 5 & 0,993 \\
+   10   & 9,412 1 & 9,365 5 & 0,497 \\
+   25   & 9,384 9 & 9,365 5 & 0,207 \\
+   50   & 9,375 4 & 9,365 5 & 0,106 \\
+  100   & 9,348 2 & 9,365 5 & 0,185 \\
+  200   & 9,360 3 & 9,365 5 & 0,055 \\
+  500   & 9,363 9 & 9,365 5 & 0,017 \\
 1\,000 & 9,364 7 & 9,365 5 & 0,009 \\
 \bottomrule
 \end{tabular}
@@ -1579,14 +1685,14 @@ $N$ & Prix CRR & Prix BS & Erreur relative (\%) \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{img/convergence_crr.png}
-\caption{Convergence du modèle CRR vers Black-Scholes sur TotalEnergies.
-(a)~Prix CRR en fonction du nombre d'étapes $N$ (échelle logarithmique),
-avec la valeur Black-Scholes en pointillés. (b)~Erreur relative
-correspondante.}
+\includegraphics[width=\textwidth]{img/convergence_cac_brent.png}
+\caption{Convergence du prix CRR vers Black-Scholes en fonction de
+$N$ pour le CAC~40 et le Brent. Ligne du haut : prix CRR et
+référence BS. Ligne du bas : erreur relative correspondante.}
 \label{fig:convergence_crr}
 \end{figure}
 
+<<<<<<< HEAD
 On observe que l'erreur relative décroît rapidement: elle passe de
 $0{,}99\,\%$ pour $N = 5$ à $0{,}009\,\%$ pour $N = 1\,000$. Dès
 $N = 100$ étapes, l'erreur est inférieure à $0{,}2\,\%$, ce qui est
@@ -1599,9 +1705,27 @@ oscillations alternées selon la parité de $N$ (phénomène bien documenté
 dans la littérature~\cite{hull2018}). Ces oscillations s'amortissent
 néanmoins rapidement et n'ont aucune conséquence pratique dès lors que
 $N \geq 50$.
+=======
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{img/convergence_comparaison.png}
+\caption{Comparaison des courbes de convergence entre le CAC~40 et
+le Brent. Malgré des volatilités différentes, les deux actifs
+présentent une vitesse de convergence similaire.}
+\label{fig:convergence_comparaison}
+\end{figure}
 
-\subsection{Limites du backtest}
+L'erreur relative décroît rapidement : elle passe d'environ $1\,\%$
+pour $N = 5$ à moins de $0{,}02\,\%$ pour $N = 500$, quel que soit
+l'actif. La convergence n'est pas strictement monotone — le prix CRR
+oscille autour de la limite Black-Scholes avec des oscillations
+alternées selon la parité de $N$~\cite{hull2018} — mais celles-ci
+s'amortissent rapidement et deviennent négligeables dès $N \geq 50$.
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
+\section{Analyse des résultats et limites}
+
+<<<<<<< HEAD
 Cette validation appelle plusieurs réserves. En premier lieu, la
 référence utilisée est elle-même un modèle théorique (Black-Scholes),
 et non un prix de marché observé. Le backtest mesure donc la cohérence
@@ -1611,25 +1735,34 @@ notamment la volatilité constante et l'absence de dividendes — et
 partagent la même volatilité calibrée $\sigma$. Il n'est pas surprenant
 qu'ils convergent: ils cherchent à résoudre le même problème par deux
 méthodes numériquement différentes (discrète et continue).
+=======
+\subsection{Bilan de la validation}
+>>>>>>> 03fc04aa9586e6c97917e4930c4c3d88631a2690
 
-En pratique, les deux principales sources d'écart entre les prix
-théoriques et les prix réels du marché sont la \textit{volatilité
-implicite} (qui n'est pas constante et génère le phénomène de
-\textit{smile} de volatilité) et les coûts de transaction. Ces effets,
-absents du modèle CRR comme du modèle Black-Scholes dans leurs
-formulations standards, constituent des pistes d'amélioration
-naturelles~\cite{hull2018}.
+Les résultats sont cohérents à tous les niveaux. La dynamique discrète
+de l'arbre CRR produit des trajectoires dont l'amplitude est conforme
+aux données historiques. Le prix de l'option à $N = 100$ s'écarte de
+moins de $0{,}2\,\%$ du prix Black-Scholes sur l'ensemble des actifs
+testés, et cette précision est stable dans le temps comme entre
+actifs. Le biais moyen légèrement négatif ($-0{,}0548$) traduit les
+oscillations résiduelles du modèle discret, phénomène bien documenté
+dans la littérature~\cite{hull2018}.
 
-\medskip
+\subsection{Limites}
 
-En conclusion, le backtest numérique confirme que le modèle CRR constitue
-une approximation fiable et efficace du prix de Black-Scholes, avec une
-erreur de l'ordre de $0{,}18\,\%$ à $N = 100$ étapes et inférieure à
-$0{,}02\,\%$ à $N = 500$ étapes. Cette convergence rapide, combinée à
-la flexibilité de l'arbre binomial pour la valorisation des options
-américaines, justifie pleinement l'utilisation du modèle CRR comme outil
-de référence en finance quantitative.
+Deux limites principales encadrent cette validation. En premier lieu,
+l'absence de prix d'options cotées empêche toute comparaison avec le
+marché réel. Le backtest mesure la \textbf{cohérence interne} entre
+deux modèles théoriques partageant les mêmes hypothèses (volatilité
+constante, log-normalité, absence de dividendes), et non l'adéquation
+du modèle aux prix effectivement pratiqués sur les marchés d'options.
 
+En second lieu, le Brent présente des comportements que ni CRR ni
+Black-Scholes ne capturent pleinement : sauts de prix liés à des
+événements géopolitiques, queues de distribution plus épaisses qu'une
+loi normale, et effets de roulement de contrats à terme. Ces
+phénomènes constituent des pistes d'amélioration naturelles, discutées
+au chapitre~7.
 
 % ============================================================
 % CHAPITRE 7
